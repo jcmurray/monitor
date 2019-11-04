@@ -4,6 +4,8 @@
 package streams
 
 import (
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"sync"
 
@@ -15,24 +17,41 @@ import (
 
 const ()
 
+type streamsInfo map[int]*StreamInfo
+
+// StreamInfo persist stream information
+type StreamInfo struct {
+	Codec          string
+	PacketDuration int
+	StreamID       int
+	Channel        string
+	From           string
+	CodecHeader    string
+	For            string
+	SampleRate     int
+	FrameSizeMs    int
+}
+
 // StreamWorker stream worker
 type StreamWorker struct {
 	sync.Mutex
-	command chan int
-	log     *log.Entry
-	id      int
-	label   string
-	workers *worker.Workers
+	command       chan int
+	log           *log.Entry
+	id            int
+	label         string
+	workers       *worker.Workers
+	activeStreams streamsInfo
 }
 
 // NewStreamWorker create a new Streamworker
 func NewStreamWorker(workers *worker.Workers, id int, label string) *StreamWorker {
 	return &StreamWorker{
-		command: make(chan int),
-		id:      id,
-		label:   label,
-		log:     log.WithFields(log.Fields{"Label": label, "ID": id}),
-		workers: workers,
+		command:       make(chan int),
+		id:            id,
+		label:         label,
+		log:           log.WithFields(log.Fields{"Label": label, "ID": id}),
+		workers:       workers,
+		activeStreams: make(streamsInfo),
 	}
 }
 
@@ -66,6 +85,21 @@ waitloop:
 				c.For = "*UNKNOWN USER*"
 			}
 
+			codecHeader, _ := base64.StdEncoding.DecodeString(c.CodecHeader)
+
+			delete(w.activeStreams, c.StreamID)
+			w.activeStreams[c.StreamID] = &StreamInfo{
+				StreamID:       c.StreamID,
+				Channel:        c.Channel,
+				From:           c.From,
+				For:            c.For,
+				Codec:          c.Codec,
+				PacketDuration: c.PacketDuration,
+				CodecHeader:    c.CodecHeader,
+				SampleRate:     int(binary.LittleEndian.Uint16(codecHeader[0:2])),
+				FrameSizeMs:    int(codecHeader[3]),
+			}
+
 			w.log.Infof("Stream id %d Started - from '%s' on '%s' for '%s'", c.StreamID, c.From, c.Channel, c.For)
 
 		case streamStop := <-streamStopChannel:
@@ -75,6 +109,8 @@ waitloop:
 				w.log.Errorf("Unmarshal error: %s", err)
 				continue
 			}
+
+			delete(w.activeStreams, c.StreamID)
 
 			w.log.Infof("Stream id %d Stopped", c.StreamID)
 

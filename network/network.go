@@ -200,31 +200,31 @@ waitloop:
 
 		switch {
 		case command.Command == protocolapp.OnErrorEvent:
-			w.log.Errorf("Command received: %s", command.Command)
+			w.log.Debugf("Command received: %s", command.Command)
 			w.sendToSubscribersByType(protocolapp.OnErrorEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnChannelStatusEvent:
-			w.log.Errorf("Command received: %s", command.Command)
+			w.log.Debugf("Command received: %s", command.Command)
 			w.sendToSubscribersByType(protocolapp.OnChannelStatusEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnStreamStartEvent:
-			w.log.Errorf("Command received: %s", command.Command)
+			w.log.Debugf("Command received: %s", command.Command)
 			w.sendToSubscribersByType(protocolapp.OnStreamStartEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnStreamStopEvent:
-			w.log.Errorf("Command received: %s", command.Command)
+			w.log.Debugf("Command received: %s", command.Command)
 			w.sendToSubscribersByType(protocolapp.OnStreamStopEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnImageEvent:
-			w.log.Errorf("Command received: %s", command.Command)
+			w.log.Debugf("Command received: %s", command.Command)
 			w.sendToSubscribersByType(protocolapp.OnImageEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnTextMessageEvent:
-			w.log.Errorf("Command received: %s", command.Command)
+			w.log.Debugf("Command received: %s", command.Command)
 			w.sendToSubscribersByType(protocolapp.OnTextMessageEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnLocationEvent:
-			w.log.Errorf("Command received: %s", command.Command)
+			w.log.Debugf("Command received: %s", command.Command)
 			w.sendToSubscribersByType(protocolapp.OnLocationEvent, w.message)
 			continue
 		}
@@ -379,6 +379,7 @@ func (w *Networker) UnSubscribe(id int, sType string) {
 
 	if located == w.subscriptions {
 		w.subscriptions = located.Next
+		return
 	}
 
 	for s := w.subscriptions; s != nil; s = s.Next {

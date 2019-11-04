@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jcmurray/monitor/authenticate"
+	"github.com/jcmurray/monitor/channelstatus"
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/streams"
 	"github.com/jcmurray/monitor/worker"
@@ -102,6 +103,11 @@ func main() {
 	waitGroup.Add(1)
 	go streamworker.Run(&waitGroup)
 
+	statusworker := channelstatus.NewStatusWorker(&workers, NewID(workers), "Status Worker")
+	workers = append(workers, statusworker)
+	waitGroup.Add(1)
+	go statusworker.Run(&waitGroup)
+
 waitLoop:
 	for {
 		select {
@@ -123,8 +129,9 @@ waitLoop:
 			case <-done:
 			case <-time.After(time.Second):
 				mlog.Debug("Grace period timer expired -- exiting")
-				authworker.Terminate()
+				statusworker.Terminate()
 				streamworker.Terminate()
+				authworker.Terminate()
 				networker.Terminate()
 				close(done)
 			}
