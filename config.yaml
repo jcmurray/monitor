@@ -1,0 +1,10 @@
+loglevel: debug
+server:
+  host: zello.io
+  port: 443
+logon:
+  channel: Network Radios
+  username: NR1314
+  password: vyEMUYWUyUtZ4NfPFwPaJ2
+  auth_token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJXa002VGxJeE16RTBPakU9LkZVbER4Z0FlY1owZkpqbytueFlOWTk2ZVpUVU84d3BDbGhpV1dOcFJscEE9IiwiZXhwIjoxNTc0NTg3MTUwLCJhenAiOiJkZXYifQ==.xB3ylD5SOOYNdL6OTWyo4jggHXiD3SZHjsiuQ+4B1lv6QMfP/8OfUciyKqsFU+zB0HnFEPDsQ1B5+RL+KMdsJWrCbUK4gnbAImJh/qkMvlWXvXpPD2X3FyVX59dyzOTE25oj8cnOUJ7XmSFxkTz23WRnIMtGSrq1dqf20Euf5MYRMcIROoC0XQgWhV9C8FQ+zsV0LCy8ximZJhPGFuH7bAoO2Sy6/tewdhDlsJOXdm9bF46xSAFGTGXfhvXdqrEfObNEw6u+hgw9sniW4b7hTUlN+yVO4rW5mmOCYiNe8Kk44YyG+aSBHP2ddqQMjytWDsV3JByXW942F4/PBauE4g==
+  listen_only: true

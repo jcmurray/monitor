@@ -1,0 +1,130 @@
+// cSpell.language:en-GB
+// cSpell:disable
+
+package main
+
+import (
+	"os"
+	"os/signal"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/jcmurray/monitor/authenticate"
+	"github.com/jcmurray/monitor/network"
+	"github.com/jcmurray/monitor/worker"
+	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+)
+
+var (
+	mlog    *log.Entry
+	workers worker.Workers
+)
+
+func init() {
+	clog := new(logrus.TextFormatter)
+	log.SetFormatter(clog)
+	clog.TimestampFormat = "2006-01-02 15:04:05"
+	clog.FullTimestamp = true
+	log.SetLevel(log.DebugLevel)
+	mlog = log.WithFields(log.Fields{"Component": "Main"})
+
+}
+
+func main() {
+	var (
+		done      chan struct{}
+		interrupt chan os.Signal
+		waitGroup sync.WaitGroup
+	)
+	done = make(chan struct{})
+	interrupt = make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	timeLogger := time.NewTicker(10 * 60 * time.Second)
+
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+
+	viper.SetDefault("loglevel", LogLevelStrings[LogLevelTrace])
+	viper.SetDefault("server.host", DefaultHostname)
+	viper.SetDefault("server.port", DefaultPort)
+	viper.SetDefault("log.listen_only", DefaultListenOnly)
+
+	if err := viper.ReadInConfig(); err != nil {
+		mlog.Fatalf("Config file error: %s", err)
+	}
+
+	configLogLevel := viper.GetString("loglevel")
+	for i := range LogLevelStrings {
+		if strings.EqualFold(LogLevelStrings[i], configLogLevel) {
+			mlog.Infof("Logging level being set to %s", LogLevelStrings[i])
+			mlog.Info("")
+			switch i {
+			case LogLevelTrace:
+				log.SetLevel(log.TraceLevel)
+			case LogLevelDebug:
+				log.SetLevel(log.DebugLevel)
+			case LogLevelInfo:
+				log.SetLevel(log.InfoLevel)
+			case LogLevelWarn:
+				log.SetLevel(log.WarnLevel)
+			case LogLevelError:
+				log.SetLevel(log.ErrorLevel)
+			case LogLevelFatal:
+				log.SetLevel(log.FatalLevel)
+			case LogLevelPanic:
+				log.SetLevel(log.PanicLevel)
+			default:
+				log.SetLevel(log.InfoLevel)
+			}
+		}
+	}
+
+	mlog.Info("Starting network worker")
+
+	networker := network.NewNetworker(&workers, NewID(workers), "Network Worker")
+	workers = append(workers, networker)
+	waitGroup.Add(1)
+	go networker.Run(&waitGroup)
+	networker.Command(worker.Connect)
+
+	authworker := authenticate.NewAuthworker(&workers, NewID(workers), "Auth Worker")
+	workers = append(workers, authworker)
+	waitGroup.Add(1)
+	go authworker.Run(&waitGroup)
+
+waitLoop:
+	for {
+		select {
+		case <-done:
+			mlog.Debug("Received 'done' event")
+			break waitLoop
+
+		case <-timeLogger.C:
+			mlog.Info("")
+			mlog.Info("---------------------------------------------------------------")
+			mlog.Infof("Current Time: %s", UtcTimeDate().Format(time.RFC3339))
+			mlog.Info("---------------------------------------------------------------")
+			mlog.Info("")
+
+		case <-interrupt:
+			mlog.Debug("Interrupt! Waiting for grace period before exiting")
+
+			select {
+			case <-done:
+			case <-time.After(time.Second):
+				mlog.Debug("Grace period timer expired -- exiting")
+				authworker.Terminate()
+				networker.Terminate()
+				close(done)
+			}
+			break waitLoop
+		}
+	}
+	mlog.Info("Finished monitoring events")
+	mlog.Info("Waiting for workers to finish")
+	waitGroup.Wait()
+	mlog.Info("Completed")
+}
