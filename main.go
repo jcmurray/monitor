@@ -12,6 +12,7 @@ import (
 
 	"github.com/jcmurray/monitor/authenticate"
 	"github.com/jcmurray/monitor/network"
+	"github.com/jcmurray/monitor/streams"
 	"github.com/jcmurray/monitor/worker"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -90,10 +91,16 @@ func main() {
 	go networker.Run(&waitGroup)
 	networker.Command(worker.Connect)
 
-	authworker := authenticate.NewAuthworker(&workers, NewID(workers), "Auth Worker")
+	authworker := authenticate.NewAuthWorker(&workers, NewID(workers), "Auth Worker")
 	workers = append(workers, authworker)
 	waitGroup.Add(1)
 	go authworker.Run(&waitGroup)
+	authworker.Command(worker.Logon)
+
+	streamworker := streams.NewStreamWorker(&workers, NewID(workers), "Stream Worker")
+	workers = append(workers, streamworker)
+	waitGroup.Add(1)
+	go streamworker.Run(&waitGroup)
 
 waitLoop:
 	for {
@@ -117,6 +124,7 @@ waitLoop:
 			case <-time.After(time.Second):
 				mlog.Debug("Grace period timer expired -- exiting")
 				authworker.Terminate()
+				streamworker.Terminate()
 				networker.Terminate()
 				close(done)
 			}

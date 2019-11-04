@@ -1,7 +1,7 @@
 // cSpell.language:en-GB
 // cSpell:disable
 
-package protocol
+package protocolapp
 
 // Logon describes a logon message for Zello Websoocket interface
 type Logon struct {
@@ -16,8 +16,8 @@ type Logon struct {
 }
 
 // NewLogon returns a template logon message
-func NewLogon() Logon {
-	return Logon{
+func NewLogon() *Logon {
+	return &Logon{
 		Command: LogonRequest,
 		Seq:     1,
 	}

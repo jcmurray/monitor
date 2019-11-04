@@ -4,46 +4,49 @@
 package network
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
+	"github.com/jcmurray/monitor/protocolapp"
 	"github.com/jcmurray/monitor/worker"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
+// SubscriptionTypeConection for use by other go routines
 const (
 	defaultRetryCount         = 8
 	defaultRetryInterval      = 2
 	defaultMaxRetryInterval   = 5 * 60
 	oneDayInSeconds           = 24 * 60 * 60
-	subscriptionTypeConection = "connection"
+	SubscriptionTypeConection = "connection"
+	Connected                 = "connected"
+	Disconnected              = "disconnected"
 )
 
 // Networker network worker
 type Networker struct {
-	sync.Mutex
-	command        chan int
-	data           chan []byte
-	hostname       string
-	port           int
-	log            *log.Entry
-	id             int
-	label          string
-	connected      bool
-	webSocket      *websocket.Conn
-	url            string
-	retryCount     int
-	retryInterval  time.Duration // seconds
-	inRetryProcess bool
-	thisInterval   time.Duration
-	message        []byte
-	subscriptions  []*worker.Subscription
-	workers        *worker.Workers
+	command           chan int
+	hostname          string
+	port              int
+	log               *log.Entry
+	id                int
+	label             string
+	connected         bool
+	webSocket         *websocket.Conn
+	url               string
+	retryCount        int
+	retryInterval     time.Duration // seconds
+	inRetryProcess    bool
+	thisInterval      time.Duration
+	message           []byte
+	subscriptionsLock sync.Mutex
+	subscriptions     *worker.Subscription
+	workers           *worker.Workers
 }
 
 // NewNetworker create a new Networker
@@ -51,7 +54,6 @@ func NewNetworker(workers *worker.Workers, id int, label string) *Networker {
 	return &Networker{
 		connected:      false,
 		command:        make(chan int, 2),
-		data:           make(chan []byte, 2),
 		id:             id,
 		label:          label,
 		log:            log.WithFields(log.Fields{"Label": label, "ID": id}),
@@ -59,6 +61,7 @@ func NewNetworker(workers *worker.Workers, id int, label string) *Networker {
 		retryCount:     defaultRetryCount,
 		retryInterval:  defaultRetryInterval,
 		workers:        workers,
+		subscriptions:  nil,
 	}
 }
 
@@ -72,8 +75,6 @@ func (w *Networker) Run(wg *sync.WaitGroup) {
 	}()
 
 	w.log.Infof("Worker Started")
-
-	w.subscriptions = make([]*worker.Subscription, 0)
 
 	w.hostname = viper.GetString("server.host")
 	w.port = viper.GetInt("server.port")
@@ -120,12 +121,10 @@ waitloop:
 					}
 				}
 			}
-		}
-		if !w.isConnected() {
+		} else {
 			w.log.Debugf("Entering Select")
 			select {
 			case netCommand, more := <-w.command:
-				w.log.Debugf("case netCommand, more := <-w.command:")
 				if more {
 					w.log.Infof("Received command %d", netCommand)
 					switch netCommand {
@@ -142,12 +141,6 @@ waitloop:
 								w.thisInterval = w.getPollingInterval()
 							}
 						}
-					case worker.Disconnect:
-						w.log.Infof("Disconnecting")
-						err := disconnect(w)
-						if err != nil {
-							w.log.Errorf("Disconnection error: %v", err)
-						}
 					case worker.Terminate:
 						w.log.Infof("Terminating")
 						break waitloop
@@ -159,8 +152,6 @@ waitloop:
 					break waitloop
 				}
 			case <-ticker.C:
-				w.log.Debugf("case <-ticker.C:")
-
 				if w.isConnected() {
 					w.log.Debug("Sending Ping")
 					err := w.webSocket.WriteMessage(websocket.PingMessage, []byte(""))
@@ -171,7 +162,6 @@ waitloop:
 				continue
 
 			case <-time.After(time.Second * w.thisInterval):
-				w.log.Debugf("case <-time.After(time.Second * w.thisInterval):")
 				if w.isRetrying() {
 					if err := connect(w); err != nil {
 						w.log.Error("Connection failure")
@@ -187,13 +177,59 @@ waitloop:
 			}
 		}
 
-		if len(w.message) > 0 {
-			if w.message[0] == 0x01 {
-				w.log.Info("Data message")
-			}
+		if len(w.message) == 0 {
+			continue
 		}
 
-		w.sendToSubscribersByType("logon_response", w.message)
+		if w.message[0] == 0x01 {
+			w.log.Trace("Data message")
+			continue
+		}
+
+		if w.message[0] == 0x02 {
+			w.log.Trace("Image message")
+			continue
+		}
+
+		command := protocolapp.Command{}
+		err = json.Unmarshal(w.message, &command)
+		if err != nil {
+			w.log.Errorf("Unmarshal error: %s", err)
+			continue
+		}
+
+		switch {
+		case command.Command == protocolapp.OnErrorEvent:
+			w.log.Errorf("Command received: %s", command.Command)
+			w.sendToSubscribersByType(protocolapp.OnErrorEvent, w.message)
+			continue
+		case command.Command == protocolapp.OnChannelStatusEvent:
+			w.log.Errorf("Command received: %s", command.Command)
+			w.sendToSubscribersByType(protocolapp.OnChannelStatusEvent, w.message)
+			continue
+		case command.Command == protocolapp.OnStreamStartEvent:
+			w.log.Errorf("Command received: %s", command.Command)
+			w.sendToSubscribersByType(protocolapp.OnStreamStartEvent, w.message)
+			continue
+		case command.Command == protocolapp.OnStreamStopEvent:
+			w.log.Errorf("Command received: %s", command.Command)
+			w.sendToSubscribersByType(protocolapp.OnStreamStopEvent, w.message)
+			continue
+		case command.Command == protocolapp.OnImageEvent:
+			w.log.Errorf("Command received: %s", command.Command)
+			w.sendToSubscribersByType(protocolapp.OnImageEvent, w.message)
+			continue
+		case command.Command == protocolapp.OnTextMessageEvent:
+			w.log.Errorf("Command received: %s", command.Command)
+			w.sendToSubscribersByType(protocolapp.OnTextMessageEvent, w.message)
+			continue
+		case command.Command == protocolapp.OnLocationEvent:
+			w.log.Errorf("Command received: %s", command.Command)
+			w.sendToSubscribersByType(protocolapp.OnLocationEvent, w.message)
+			continue
+		}
+
+		w.sendToSubscribersByType(protocolapp.OnResponseEvent, w.message)
 
 	}
 	w.log.Info("Finished")
@@ -206,11 +242,15 @@ func (w *Networker) Command(c int) {
 
 // Data sent to this worker
 func (w *Networker) Data(d []byte) {
-	err := w.webSocket.WriteMessage(websocket.TextMessage, d)
-	if err != nil {
-		w.log.Errorf("write: %s", err)
+	if w.isConnected() {
+		err := w.webSocket.WriteMessage(websocket.TextMessage, d)
+		if err != nil {
+			w.log.Errorf("write: %s", err)
+		}
+		w.log.Tracef("writen: %v", d)
+	} else {
+		w.log.Warn("Attempt to send data on disconnected websocket")
 	}
-	w.log.Debugf("writen: %v", d)
 }
 
 // Disconnect the websocket
@@ -236,7 +276,7 @@ func connect(w *Networker) error {
 		return err
 	}
 	w.log.Debugf("Connected to %s", w.url)
-	w.sendToSubscribersByType(subscriptionTypeConection, []byte("connected"))
+	w.sendToSubscribersByType(SubscriptionTypeConection, []byte(Connected))
 	w.webSocket = c
 	w.setConnected()
 	return nil
@@ -256,7 +296,7 @@ func disconnect(w *Networker) error {
 		w.setDisconnected()
 		return errors.Annotate(err, "Error on disconnecting Zello WebSocket")
 	}
-	w.sendToSubscribersByType(subscriptionTypeConection, []byte("disconnected"))
+	w.sendToSubscribersByType(SubscriptionTypeConection, []byte(Disconnected))
 	w.setDisconnected()
 	w.log.Debugf("Disconnected from %s", w.url)
 	return nil
@@ -310,43 +350,55 @@ func (w *Networker) getPollingInterval() time.Duration {
 
 // Subscribe to this worker
 func (w *Networker) Subscribe(id int, sType string, label string) *worker.Subscription {
-	w.Lock()
-	defer w.Unlock()
-	for _, s := range w.subscriptions {
-		if s.ID == id && s.Type == sType {
-			return s
-		}
-	}
+
 	subscription := worker.NewSubscription(id, sType, label)
-
-	spew.Dump(subscription)
-
-	w.subscriptions = append(w.subscriptions, subscription)
+	subscription.Next = w.subscriptions
+	w.subscriptions = subscription
 
 	return subscription
 }
 
 // UnSubscribe from this worker
 func (w *Networker) UnSubscribe(id int, sType string) {
-	w.Lock()
-	defer w.Unlock()
-	for i, s := range w.subscriptions {
+	w.subscriptionsLock.Lock()
+	defer w.subscriptionsLock.Unlock()
+
+	var located *worker.Subscription = nil
+	var prior *worker.Subscription = nil
+
+	for s := w.subscriptions; s != nil; s = s.Next {
 		if s.ID == id && s.Type == sType {
-			w.subscriptions = append(w.subscriptions[:i], w.subscriptions[i+1:]...)
-			return
+			located = s
+			break
 		}
 	}
+
+	if located == nil {
+		return
+	}
+
+	if located == w.subscriptions {
+		w.subscriptions = located.Next
+	}
+
+	for s := w.subscriptions; s != nil; s = s.Next {
+		if s.Next == located {
+			prior = s
+			break
+		}
+	}
+
+	prior.Next = located.Next
 }
 
 func (w *Networker) sendToSubscribersByType(sType string, message []byte) {
-	w.Lock()
-	defer w.Unlock()
-	w.log.Debugf("sendToSubscribersByType(): type %s, %v", sType, message)
-	spew.Dump(w.subscriptions)
-	for _, s := range w.subscriptions {
+	w.subscriptionsLock.Lock()
+	defer w.subscriptionsLock.Unlock()
+	w.log.Tracef("sendToSubscribersByType(): type %s, %v", sType, message)
+	for s := w.subscriptions; s != nil; s = s.Next {
 		if s.Type == sType {
-			w.log.Debugf("sendToSubscribersByType(): Found channel match")
 			s.Channel <- message
+			return
 		}
 	}
 }

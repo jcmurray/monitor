@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/jcmurray/monitor/network"
-	"github.com/jcmurray/monitor/network/protocol"
+	"github.com/jcmurray/monitor/protocolapp"
 	"github.com/jcmurray/monitor/worker"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
@@ -17,23 +17,27 @@ import (
 
 const ()
 
-// AuthWorker network worker
+// AuthWorker logon worker
 type AuthWorker struct {
-	command chan int
-	log     *log.Entry
-	id      int
-	label   string
-	workers *worker.Workers
+	sync.Mutex
+	command      chan int
+	log          *log.Entry
+	id           int
+	label        string
+	workers      *worker.Workers
+	loggedOn     bool
+	refreshToken string
 }
 
-// NewAuthworker create a new Logworker
-func NewAuthworker(workers *worker.Workers, id int, label string) *AuthWorker {
+// NewAuthWorker create a new Logworker
+func NewAuthWorker(workers *worker.Workers, id int, label string) *AuthWorker {
 	return &AuthWorker{
-		command: make(chan int),
-		id:      id,
-		label:   label,
-		log:     log.WithFields(log.Fields{"Label": label, "ID": id}),
-		workers: workers,
+		command:  make(chan int),
+		id:       id,
+		label:    label,
+		log:      log.WithFields(log.Fields{"Label": label, "ID": id}),
+		workers:  workers,
+		loggedOn: false,
 	}
 }
 
@@ -43,31 +47,58 @@ func (w *AuthWorker) Run(wg *sync.WaitGroup) {
 	w.log.Infof("Worker Started")
 
 	nw := w.findNetWorker()
-	con := nw.Subscribe(w.id, "connection", w.label)
-	connectionChannel := con.Channel
-	logon := nw.Subscribe(w.id, "logon_response", w.label)
-	logonChannel := logon.Channel
+	connectionChannel := nw.Subscribe(w.id, network.SubscriptionTypeConection, w.label).Channel
+	responseChannel := nw.Subscribe(w.id, protocolapp.OnResponseEvent, w.label).Channel
+	errorChannel := nw.Subscribe(w.id, protocolapp.OnErrorEvent, w.label).Channel
 
 waitloop:
 	for {
 		w.log.Debugf("Entering Select")
 		select {
 		case connected := <-connectionChannel:
-			w.log.Debugf("Connected message received: v", connected)
-			w.doLogon()
+			w.log.Tracef("case connected := <-connectionChannel: %s", string(connected.([]byte)))
+			cmd := string(connected.([]byte))
+			switch cmd {
+			case network.Connected:
+				w.log.Debugf("Connected message received")
+				if !w.isLoggedOn() {
+					w.doLogon()
+				}
+			case network.Disconnected:
+				w.log.Debugf("Disconnected message received")
+				w.unsetLoggedOn()
+			}
 
-		case logon := <-logonChannel:
-			w.log.Debugf("Response: %s", string(logon.([]byte)))
+		case response := <-responseChannel:
+			w.log.Tracef("Response: %s", string(response.([]byte)))
+			resp := protocolapp.NewResponse()
+			err := json.Unmarshal(response.([]byte), resp)
+			if err != nil {
+				w.log.Errorf("Unmarshal error: %s", err)
+				continue
+			}
+			if resp.Success && resp.Seq == 1 && resp.StreamID == 0 {
+				w.refreshToken = resp.RefreshToken
+				w.setLoggedOn()
+				continue
+			}
+
+		case errorMessage := <-errorChannel:
+			w.log.Debugf("Response: %s", string(errorMessage.([]byte)))
 
 		case logonCommand, more := <-w.command:
-			w.log.Debugf("case logonCommand, more := <-w.command:")
 			if more {
 				w.log.Infof("Received command %d", logonCommand)
 				switch logonCommand {
 				case worker.Logon:
+					if !w.isLoggedOn() {
+						w.doLogon()
+					}
 				case worker.Logoff:
+					w.unsetLoggedOn()
 				case worker.Terminate:
 					w.log.Infof("Terminating")
+					w.unsetLoggedOn()
 					break waitloop
 				default:
 					continue
@@ -78,8 +109,12 @@ waitloop:
 			}
 			continue
 		}
-
 	}
+
+	nw.UnSubscribe(w.id, protocolapp.OnResponseEvent)
+	nw.UnSubscribe(w.id, protocolapp.OnErrorEvent)
+	nw.UnSubscribe(w.id, network.SubscriptionTypeConection)
+
 	w.log.Info("Finished")
 }
 
@@ -104,21 +139,43 @@ func (w *AuthWorker) findNetWorker() *network.Networker {
 	return nil
 }
 
+func (w *AuthWorker) isLoggedOn() bool {
+	return w.loggedOn
+}
+
+func (w *AuthWorker) setLoggedOn() {
+	w.Lock()
+	defer w.Unlock()
+	w.loggedOn = true
+}
+
+func (w *AuthWorker) unsetLoggedOn() {
+	w.Lock()
+	defer w.Unlock()
+	w.loggedOn = false
+}
+
 func (w *AuthWorker) doLogon() error {
-	logon := protocol.NewLogon()
+	logon := protocolapp.NewLogon()
 	logon.Channel = viper.GetString("logon.channel")
-	logon.AuthToken = viper.GetString("logon.auth_token")
+
+	if w.refreshToken != "" {
+		logon.RefreshToken = w.refreshToken
+	} else {
+		logon.AuthToken = viper.GetString("logon.auth_token")
+	}
+
 	logon.Username = viper.GetString("logon.username")
 	logon.Password = viper.GetString("logon.password")
 	logon.ListenOnly = viper.GetBool("logon.listen_only")
 
-	buff, err := json.Marshal(&logon)
+	buff, err := json.Marshal(logon)
 	if err != nil {
 		w.log.Errorf("Marshal error: %s", err)
 		return errors.Annotate(err, "Marshal failure for Zello logon request")
 	}
 
-	w.log.Debugf("Sending: %s", buff)
+	w.log.Tracef("Sending: %s", buff)
 
 	nw := w.findNetWorker()
 	nw.Data([]byte(string(buff)))
