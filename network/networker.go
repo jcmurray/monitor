@@ -74,7 +74,7 @@ func (w *Networker) Run(wg *sync.WaitGroup) {
 		}
 	}()
 
-	w.log.Infof("Worker Started")
+	w.log.Debugf("Worker Started")
 
 	w.hostname = viper.GetString("server.host")
 	w.port = viper.GetInt("server.port")
@@ -126,10 +126,10 @@ waitloop:
 			select {
 			case netCommand, more := <-w.command:
 				if more {
-					w.log.Infof("Received command %d", netCommand)
+					w.log.Debugf("Received command %d", netCommand)
 					switch netCommand {
 					case worker.Connect:
-						w.log.Infof("Connecting")
+						w.log.Debugf("Connecting")
 						err := connect(w)
 						if err != nil {
 							w.log.Errorf("Connection error: %v", err)
@@ -141,8 +141,9 @@ waitloop:
 								w.thisInterval = w.getPollingInterval()
 							}
 						}
+						w.log.Debugf("Connected")
 					case worker.Terminate:
-						w.log.Infof("Terminating")
+						w.log.Debugf("Terminating")
 						break waitloop
 					default:
 						continue
@@ -234,7 +235,7 @@ waitloop:
 		w.sendToSubscribersByType(protocolapp.OnResponseEvent, w.message)
 
 	}
-	w.log.Info("Finished")
+	w.log.Debug("Finished")
 }
 
 // Command sent to this worker

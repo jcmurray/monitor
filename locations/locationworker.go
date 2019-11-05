@@ -41,7 +41,7 @@ func NewLocationWorker(workers *worker.Workers, id int, label string) *LocationW
 // Run is main function of this worker
 func (w *LocationWorker) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
-	w.log.Infof("Worker Started")
+	w.log.Debugf("Worker Started")
 
 	nw := w.findNetWorker()
 	locationChannel := nw.Subscribe(w.id, protocolapp.OnLocationEvent, w.label).Channel
@@ -78,10 +78,10 @@ waitloop:
 
 		case textMessageCommand, more := <-w.command:
 			if more {
-				w.log.Infof("Received command %d", textMessageCommand)
+				w.log.Debugf("Received command %d", textMessageCommand)
 				switch textMessageCommand {
 				case worker.Terminate:
-					w.log.Infof("Terminating")
+					w.log.Debugf("Terminating")
 					break waitloop
 				default:
 					continue
@@ -96,7 +96,7 @@ waitloop:
 	nw.UnSubscribe(w.id, protocolapp.OnLocationEvent)
 	nw.UnSubscribe(w.id, protocolapp.OnErrorEvent)
 
-	w.log.Info("Finished")
+	w.log.Debug("Finished")
 }
 
 // Command sent to this worker

@@ -58,7 +58,7 @@ func NewImageWorker(workers *worker.Workers, id int, label string) *ImageWorker 
 // Run is main function of this worker
 func (w *ImageWorker) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
-	w.log.Infof("Worker Started")
+	w.log.Debugf("Worker Started")
 
 	nw := w.findNetWorker()
 	imageChannel := nw.Subscribe(w.id, protocolapp.OnImageEvent, w.label).Channel
@@ -124,10 +124,10 @@ waitloop:
 
 		case imageCommand, more := <-w.command:
 			if more {
-				w.log.Infof("Received command %d", imageCommand)
+				w.log.Debugf("Received command %d", imageCommand)
 				switch imageCommand {
 				case worker.Terminate:
-					w.log.Infof("Terminating")
+					w.log.Debugf("Terminating")
 					break waitloop
 				default:
 					continue
@@ -143,7 +143,7 @@ waitloop:
 	nw.UnSubscribe(w.id, protocolapp.OnImageEvent)
 	nw.UnSubscribe(w.id, protocolapp.OnErrorEvent)
 
-	w.log.Info("Finished")
+	w.log.Debug("Finished")
 }
 
 // Command sent to this worker

@@ -44,7 +44,7 @@ func NewAuthWorker(workers *worker.Workers, id int, label string) *AuthWorker {
 // Run is main function of this worker
 func (w *AuthWorker) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
-	w.log.Infof("Worker Started")
+	w.log.Debugf("Worker Started")
 
 	nw := w.findNetWorker()
 	connectionChannel := nw.Subscribe(w.id, network.SubscriptionTypeConection, w.label).Channel
@@ -88,7 +88,7 @@ waitloop:
 
 		case logonCommand, more := <-w.command:
 			if more {
-				w.log.Infof("Received command %d", logonCommand)
+				w.log.Debugf("Received command %d", logonCommand)
 				switch logonCommand {
 				case worker.Logon:
 					if !w.isLoggedOn() {
@@ -97,7 +97,7 @@ waitloop:
 				case worker.Logoff:
 					w.unsetLoggedOn()
 				case worker.Terminate:
-					w.log.Infof("Terminating")
+					w.log.Debugf("Terminating")
 					w.unsetLoggedOn()
 					break waitloop
 				default:
@@ -115,7 +115,7 @@ waitloop:
 	nw.UnSubscribe(w.id, protocolapp.OnErrorEvent)
 	nw.UnSubscribe(w.id, network.SubscriptionTypeConection)
 
-	w.log.Info("Finished")
+	w.log.Debug("Finished")
 }
 
 // Command sent to this worker

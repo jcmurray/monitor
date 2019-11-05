@@ -59,7 +59,7 @@ func NewStreamWorker(workers *worker.Workers, id int, label string) *StreamWorke
 // Run is main function of this worker
 func (w *StreamWorker) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
-	w.log.Infof("Worker Started")
+	w.log.Debugf("Worker Started")
 
 	nw := w.findNetWorker()
 	streamStartChannel := nw.Subscribe(w.id, protocolapp.OnStreamStartEvent, w.label).Channel
@@ -129,10 +129,10 @@ waitloop:
 
 		case streamCommand, more := <-w.command:
 			if more {
-				w.log.Infof("Received command %d", streamCommand)
+				w.log.Debugf("Received command %d", streamCommand)
 				switch streamCommand {
 				case worker.Terminate:
-					w.log.Infof("Terminating")
+					w.log.Debugf("Terminating")
 					break waitloop
 				default:
 					continue
@@ -149,7 +149,7 @@ waitloop:
 	nw.UnSubscribe(w.id, protocolapp.OnStreamStopEvent)
 	nw.UnSubscribe(w.id, network.SubscriptionTypeConection)
 
-	w.log.Info("Finished")
+	w.log.Debug("Finished")
 }
 
 // Command sent to this worker

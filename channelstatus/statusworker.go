@@ -42,7 +42,7 @@ func NewStatusWorker(workers *worker.Workers, id int, label string) *StatusWorke
 // Run is main function of this worker
 func (w *StatusWorker) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
-	w.log.Infof("Worker Started")
+	w.log.Debugf("Worker Started")
 
 	nw := w.findNetWorker()
 	statusChannel := nw.Subscribe(w.id, protocolapp.OnChannelStatusEvent, w.label).Channel
@@ -91,10 +91,10 @@ waitloop:
 
 		case streamCommand, more := <-w.command:
 			if more {
-				w.log.Infof("Received command %d", streamCommand)
+				w.log.Debugf("Received command %d", streamCommand)
 				switch streamCommand {
 				case worker.Terminate:
-					w.log.Infof("Terminating")
+					w.log.Debugf("Terminating")
 					break waitloop
 				default:
 					continue
@@ -109,7 +109,7 @@ waitloop:
 	nw.UnSubscribe(w.id, protocolapp.OnChannelStatusEvent)
 	nw.UnSubscribe(w.id, protocolapp.OnErrorEvent)
 
-	w.log.Info("Finished")
+	w.log.Debug("Finished")
 }
 
 // Command sent to this worker

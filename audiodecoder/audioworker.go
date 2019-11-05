@@ -44,7 +44,7 @@ func NewAudioWorker(workers *worker.Workers, id int, label string) *AudioWorker 
 func (w *AudioWorker) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	w.log.Infof("Worker Started")
+	w.log.Debugf("Worker Started")
 
 	portaudio.Initialize()
 
@@ -100,10 +100,10 @@ waitloop:
 
 		case audioCommand, more := <-w.command:
 			if more {
-				w.log.Infof("Received command %d", audioCommand)
+				w.log.Debugf("Received command %d", audioCommand)
 				switch audioCommand {
 				case worker.Terminate:
-					w.log.Infof("Terminating")
+					w.log.Debugf("Terminating")
 					break waitloop
 				default:
 					continue
@@ -114,7 +114,7 @@ waitloop:
 			}
 		}
 	}
-	w.log.Info("Finished")
+	w.log.Debug("Finished")
 }
 
 // Data sent to this worker

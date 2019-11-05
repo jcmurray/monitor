@@ -171,8 +171,8 @@ waitLoop:
 			break waitLoop
 		}
 	}
-	mlog.Info("Finished monitoring events")
-	mlog.Info("Waiting for workers to finish")
+	mlog.Debug("Finished monitoring events")
+	mlog.Debug("Waiting for workers to finish")
 	waitGroup.Wait()
 	mlog.Info("Completed")
 }
