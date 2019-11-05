@@ -183,11 +183,13 @@ waitloop:
 
 		if w.message[0] == 0x01 {
 			w.log.Trace("Data message")
+			w.sendToSubscribersByType(protocolapp.OnStreamDataEvent, w.message)
 			continue
 		}
 
 		if w.message[0] == 0x02 {
 			w.log.Trace("Image message")
+			w.sendToSubscribersByType(protocolapp.OnImageDataEvent, w.message)
 			continue
 		}
 

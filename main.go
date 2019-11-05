@@ -12,8 +12,11 @@ import (
 
 	"github.com/jcmurray/monitor/authenticate"
 	"github.com/jcmurray/monitor/channelstatus"
+	"github.com/jcmurray/monitor/images"
+	"github.com/jcmurray/monitor/locations"
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/streams"
+	"github.com/jcmurray/monitor/texts"
 	"github.com/jcmurray/monitor/worker"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -53,6 +56,9 @@ func main() {
 	viper.SetDefault("server.host", DefaultHostname)
 	viper.SetDefault("server.port", DefaultPort)
 	viper.SetDefault("log.listen_only", DefaultListenOnly)
+
+	viper.SetDefault("location.what3wordsapikey", DefaulW3WAPIKey)
+	viper.SetDefault("location.what3words", DefaultUseW3W)
 
 	if err := viper.ReadInConfig(); err != nil {
 		mlog.Fatalf("Config file error: %s", err)
@@ -108,6 +114,21 @@ func main() {
 	waitGroup.Add(1)
 	go statusworker.Run(&waitGroup)
 
+	imageworker := images.NewImageWorker(&workers, NewID(workers), "Image Worker")
+	workers = append(workers, imageworker)
+	waitGroup.Add(1)
+	go imageworker.Run(&waitGroup)
+
+	textworker := texts.NewTextMessageWorker(&workers, NewID(workers), "Text Message Worker")
+	workers = append(workers, textworker)
+	waitGroup.Add(1)
+	go textworker.Run(&waitGroup)
+
+	locationworker := locations.NewLocationWorker(&workers, NewID(workers), "Location Worker")
+	workers = append(workers, locationworker)
+	waitGroup.Add(1)
+	go locationworker.Run(&waitGroup)
+
 waitLoop:
 	for {
 		select {
@@ -129,10 +150,15 @@ waitLoop:
 			case <-done:
 			case <-time.After(time.Second):
 				mlog.Debug("Grace period timer expired -- exiting")
+
+				imageworker.Terminate()
+				textworker.Terminate()
+				locationworker.Terminate()
 				statusworker.Terminate()
 				streamworker.Terminate()
 				authworker.Terminate()
 				networker.Terminate()
+
 				close(done)
 			}
 			break waitLoop

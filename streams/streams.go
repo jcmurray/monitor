@@ -64,10 +64,11 @@ func (w *StreamWorker) Run(wg *sync.WaitGroup) {
 	streamStartChannel := nw.Subscribe(w.id, protocolapp.OnStreamStartEvent, w.label).Channel
 	streamStopChannel := nw.Subscribe(w.id, protocolapp.OnStreamStopEvent, w.label).Channel
 	errorChannel := nw.Subscribe(w.id, protocolapp.OnErrorEvent, w.label).Channel
+	streamDataChannel := nw.Subscribe(w.id, protocolapp.OnStreamDataEvent, w.label).Channel
 
 waitloop:
 	for {
-		w.log.Debugf("Entering Select")
+		w.log.Tracef("Entering Select")
 		select {
 		case errorMessage := <-errorChannel:
 			w.log.Debugf("Response: %s", string(errorMessage.([]byte)))
@@ -79,10 +80,6 @@ waitloop:
 			if err != nil {
 				w.log.Errorf("Unmarshal error: %s", err)
 				continue
-			}
-
-			if c.For == "" || c.For == "false" {
-				c.For = "*UNKNOWN USER*"
 			}
 
 			codecHeader, _ := base64.StdEncoding.DecodeString(c.CodecHeader)
@@ -114,6 +111,19 @@ waitloop:
 
 			w.log.Infof("Stream id %d Stopped", c.StreamID)
 
+		case streamData := <-streamDataChannel:
+			message := streamData.([]byte)
+			streamID := binary.BigEndian.Uint32(message[1:5])
+			packetID := binary.BigEndian.Uint32(message[5:9])
+			data := message[9:]
+
+			if _, ok := w.activeStreams[int(streamID)]; ok {
+				w.log.Tracef("Start of Opus Packet %d received on stream ID %d: %#v ...", packetID, streamID, data[:6])
+			} else {
+				w.log.Errorf("Unrecognised Audio StreamId %d", streamID)
+			}
+			continue
+
 		case streamCommand, more := <-w.command:
 			if more {
 				w.log.Infof("Received command %d", streamCommand)
@@ -131,6 +141,7 @@ waitloop:
 		}
 	}
 
+	nw.UnSubscribe(w.id, protocolapp.OnStreamDataEvent)
 	nw.UnSubscribe(w.id, protocolapp.OnStreamStartEvent)
 	nw.UnSubscribe(w.id, protocolapp.OnStreamStopEvent)
 	nw.UnSubscribe(w.id, network.SubscriptionTypeConection)

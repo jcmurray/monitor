@@ -13,5 +13,7 @@ const (
 	OnImageEvent         string = "on_image"
 	OnTextMessageEvent   string = "on_text_message"
 	OnLocationEvent      string = "on_location"
-	OnResponseEvent      string = "response"
+	OnResponseEvent      string = "xxx_on_response"
+	OnImageDataEvent     string = "xxx_on_image_data"
+	OnStreamDataEvent    string = "xxx_on_stream_data"
 )
