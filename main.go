@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jcmurray/monitor/audiodecoder"
 	"github.com/jcmurray/monitor/authenticate"
 	"github.com/jcmurray/monitor/channelstatus"
 	"github.com/jcmurray/monitor/images"
@@ -129,6 +130,11 @@ func main() {
 	waitGroup.Add(1)
 	go locationworker.Run(&waitGroup)
 
+	audioworker := audiodecoder.NewAudioWorker(&workers, NewID(workers), "Audio Worker")
+	workers = append(workers, audioworker)
+	waitGroup.Add(1)
+	go audioworker.Run(&waitGroup)
+
 waitLoop:
 	for {
 		select {
@@ -151,6 +157,7 @@ waitLoop:
 			case <-time.After(time.Second):
 				mlog.Debug("Grace period timer expired -- exiting")
 
+				audioworker.Terminate()
 				imageworker.Terminate()
 				textworker.Terminate()
 				locationworker.Terminate()

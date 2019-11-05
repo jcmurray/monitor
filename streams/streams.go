@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/jcmurray/monitor/audiodecoder"
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/protocolapp"
 	"github.com/jcmurray/monitor/worker"
@@ -119,6 +120,8 @@ waitloop:
 
 			if _, ok := w.activeStreams[int(streamID)]; ok {
 				w.log.Tracef("Start of Opus Packet %d received on stream ID %d: %#v ...", packetID, streamID, data[:6])
+				au := w.findAudiotWorker()
+				au.Data(data)
 			} else {
 				w.log.Errorf("Unrecognised Audio StreamId %d", streamID)
 			}
@@ -165,6 +168,17 @@ func (w *StreamWorker) findNetWorker() *network.Networker {
 		switch (*w.workers)[i].(type) {
 		case *network.Networker:
 			return (*w.workers)[i].(*network.Networker)
+		}
+	}
+	return nil
+}
+
+// FindAudioWorker find Audio worker
+func (w *StreamWorker) findAudiotWorker() *audiodecoder.AudioWorker {
+	for i := range *w.workers {
+		switch (*w.workers)[i].(type) {
+		case *audiodecoder.AudioWorker:
+			return (*w.workers)[i].(*audiodecoder.AudioWorker)
 		}
 	}
 	return nil
