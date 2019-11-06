@@ -57,7 +57,7 @@ func NewStreamWorker(workers *worker.Workers, id int, label string) *StreamWorke
 }
 
 // Run is main function of this worker
-func (w *StreamWorker) Run(wg *sync.WaitGroup) {
+func (w *StreamWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 	w.log.Debugf("Worker Started")
 
@@ -108,9 +108,11 @@ waitloop:
 				continue
 			}
 
-			delete(w.activeStreams, c.StreamID)
-
-			w.log.Infof("Stream id %d Stopped", c.StreamID)
+			if si, ok := w.activeStreams[int(c.StreamID)]; ok {
+				w.log.Infof("Stream id %d Stopped - from '%s' on '%s' for '%s'", c.StreamID, si.From, si.Channel, si.For)
+				delete(w.activeStreams, c.StreamID)
+			}
+			continue
 
 		case streamData := <-streamDataChannel:
 			message := streamData.([]byte)

@@ -30,6 +30,7 @@ const (
 
 // Networker network worker
 type Networker struct {
+	sync.Mutex
 	command           chan int
 	hostname          string
 	port              int
@@ -66,7 +67,7 @@ func NewNetworker(workers *worker.Workers, id int, label string) *Networker {
 }
 
 // Run is main finction of this worker
-func (w *Networker) Run(wg *sync.WaitGroup) {
+func (w *Networker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 	defer func() {
 		if w.isConnected() {
@@ -90,13 +91,16 @@ waitloop:
 	for {
 		var err error
 		if w.isConnected() {
+			w.log.Trace("About to: w.webSocket.ReadMessage()")
 			_, w.message, err = w.webSocket.ReadMessage()
 			if ce, ok := err.(*websocket.CloseError); ok {
 				switch ce.Code {
 				case websocket.CloseNormalClosure,
 					websocket.CloseGoingAway,
 					websocket.CloseNoStatusReceived:
+					w.log.Trace("WebSocket Normal Close")
 					w.setDisconnected()
+					break waitloop
 				case websocket.CloseProtocolError,
 					websocket.CloseUnsupportedData,
 					websocket.CloseAbnormalClosure,
@@ -108,6 +112,7 @@ waitloop:
 					websocket.CloseServiceRestart,
 					websocket.CloseTryAgainLater,
 					websocket.CloseTLSHandshake:
+					w.log.Trace("WebSocket Abnormal Close")
 					w.setDisconnected()
 					if !w.isRetrying() {
 						w.resetRetryCounters()
@@ -115,11 +120,24 @@ waitloop:
 					}
 					w.thisInterval = w.getPollingInterval()
 					w.log.Infof("Retry %d in %d seconds", w.retryCount, w.thisInterval)
+
+				case 3001:
+					w.log.Trace("Exiting due to channel closed")
+					w.setDisconnected()
+					*term <- 1
+
+				case 3002:
+					w.log.Trace("Exiting due to invalid credentials")
+					w.setDisconnected()
+					*term <- 1
+
 				default:
-					if w.isRetrying() {
-						w.resetRetryCounters()
-					}
+					w.log.Trace("Exiting due to unrecognised websocket close code=%s", err)
+					w.setDisconnected()
+					*term <- 1
 				}
+			} else {
+				w.log.Trace("WebSocket exited with non-close indication, err=%s", err)
 			}
 		} else {
 			w.log.Debugf("Entering Select")
@@ -204,30 +222,37 @@ waitloop:
 		switch {
 		case command.Command == protocolapp.OnErrorEvent:
 			w.log.Debugf("Command received: %s", command.Command)
+			w.log.Tracef("Error Message: %s", string(w.message))
 			w.sendToSubscribersByType(protocolapp.OnErrorEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnChannelStatusEvent:
 			w.log.Debugf("Command received: %s", command.Command)
+			w.log.Tracef("Status Message: %s", string(w.message))
 			w.sendToSubscribersByType(protocolapp.OnChannelStatusEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnStreamStartEvent:
 			w.log.Debugf("Command received: %s", command.Command)
+			w.log.Tracef("Stream Start Message: %s", string(w.message))
 			w.sendToSubscribersByType(protocolapp.OnStreamStartEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnStreamStopEvent:
 			w.log.Debugf("Command received: %s", command.Command)
+			w.log.Tracef("Stream Stop Message: %s", string(w.message))
 			w.sendToSubscribersByType(protocolapp.OnStreamStopEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnImageEvent:
 			w.log.Debugf("Command received: %s", command.Command)
+			w.log.Tracef("Image Message: %s", string(w.message))
 			w.sendToSubscribersByType(protocolapp.OnImageEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnTextMessageEvent:
 			w.log.Debugf("Command received: %s", command.Command)
+			w.log.Tracef("Text Message: %s", string(w.message))
 			w.sendToSubscribersByType(protocolapp.OnTextMessageEvent, w.message)
 			continue
 		case command.Command == protocolapp.OnLocationEvent:
 			w.log.Debugf("Command received: %s", command.Command)
+			w.log.Tracef("Location Message: %s", string(w.message))
 			w.sendToSubscribersByType(protocolapp.OnLocationEvent, w.message)
 			continue
 		}
@@ -258,16 +283,23 @@ func (w *Networker) Data(d []byte) {
 
 // Disconnect the websocket
 func (w *Networker) Disconnect() {
+	w.log.Trace("in: func (w *Networker) Disconnect()")
 	disconnect(w)
 }
 
 // Terminate the worker
 func (w *Networker) Terminate() {
-	disconnect(w)
+	w.log.Trace("in: func (w *Networker) Terminate()")
+	w.Disconnect()
 	w.Command(worker.Terminate)
 }
 
 func connect(w *Networker) error {
+	w.Lock()
+	defer w.Unlock()
+
+	w.log.Trace("in: func (w *Networker) connect()")
+
 	if w.isConnected() {
 		w.log.Debugf("State error, unable to connect when already connected")
 		return nil
@@ -286,6 +318,11 @@ func connect(w *Networker) error {
 }
 
 func disconnect(w *Networker) error {
+	w.Lock()
+	defer w.Unlock()
+
+	w.log.Trace("in: func (w *Networker) disconnect()")
+
 	if !w.isConnected() {
 		w.log.Debugf("State error, unable to disconnect when already disconnected")
 		return nil

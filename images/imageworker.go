@@ -59,7 +59,7 @@ func NewImageWorker(workers *worker.Workers, id int, label string) *ImageWorker 
 }
 
 // Run is main function of this worker
-func (w *ImageWorker) Run(wg *sync.WaitGroup) {
+func (w *ImageWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 	w.log.Debugf("Worker Started")
 
@@ -175,7 +175,7 @@ func (w *ImageWorker) findNetWorker() *network.Networker {
 func (w *ImageWorker) saveFullImageFile(ai *ImageInfo, data []byte) {
 	if viper.GetBool("image.logging") {
 		fileNameFull := fmt.Sprintf("image_full_%d_%s.%s", ai.MessageID, ai.Source, ai.Type)
-		w.log.Debugf("Logging full      image on message ID %d to file: %s", ai.MessageID, fileNameFull)
+		w.log.Infof("Logging full      image on message ID %d to file: %s", ai.MessageID, fileNameFull)
 		w.saveImageFile(ai, fileNameFull, data)
 	}
 }
@@ -183,7 +183,7 @@ func (w *ImageWorker) saveFullImageFile(ai *ImageInfo, data []byte) {
 func (w *ImageWorker) saveThumbNailImageFile(ai *ImageInfo, data []byte) {
 	if viper.GetBool("image.logging") {
 		fileNameThumb := fmt.Sprintf("image_thumb_%d_%s.%s", ai.MessageID, ai.Source, ai.Type)
-		log.Debugf("Logging thumbnail image on message ID %d to file: %s", ai.MessageID, fileNameThumb)
+		w.log.Infof("Logging thumbnail image on message ID %d to file: %s", ai.MessageID, fileNameThumb)
 		w.saveImageFile(ai, fileNameThumb, data)
 	}
 }
@@ -196,6 +196,6 @@ func (w *ImageWorker) saveImageFile(ai *ImageInfo, fileName string, data []byte)
 	defer f.Close()
 	_, err = f.Write(data)
 	if err != nil {
-		log.Errorf("Error writing image file for message ID %d, %v", ai.MessageID, err)
+		w.log.Errorf("Error writing image file for message ID %d, %v", ai.MessageID, err)
 	}
 }

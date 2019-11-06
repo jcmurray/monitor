@@ -37,7 +37,7 @@ func NewTextMessageWorker(workers *worker.Workers, id int, label string) *TextMe
 }
 
 // Run is main function of this worker
-func (w *TextMessageWorker) Run(wg *sync.WaitGroup) {
+func (w *TextMessageWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 	w.log.Debugf("Worker Started")
 

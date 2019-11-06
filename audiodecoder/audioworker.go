@@ -11,6 +11,7 @@ import (
 	"github.com/hraban/opus"
 	"github.com/jcmurray/monitor/worker"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -41,25 +42,31 @@ func NewAudioWorker(workers *worker.Workers, id int, label string) *AudioWorker 
 }
 
 // Run is main function of this worker
-func (w *AudioWorker) Run(wg *sync.WaitGroup) {
+func (w *AudioWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 
 	w.log.Debugf("Worker Started")
 
 	portaudio.Initialize()
 
+	frameRate := viper.GetInt("audio.framerate")
+	sampleRate := viper.GetInt("audio.samplerate")
+	channels := viper.GetInt("audio.channels")
+	framesPerPacket := viper.GetInt("audio.framesperpacket")
+	bufferLength := frameRate * sampleRate * channels * framesPerPacket / 1000
+
 	w.opusBufferQueue = queue.New(defaultQueueSize)
-	dec, err := opus.NewDecoder(16000, 1)
+	dec, err := opus.NewDecoder(sampleRate, 1)
 	if err != nil {
 		w.log.Errorf("Error creating decoder: %s", err)
 		return
 	}
-	bufferLength := 60 * 16000 * 1 * 2 / 1000
+
 	pcm := make([]int16, int(bufferLength))
 
 	w.log.Debugf("Audio loop setup calculated buffer length for PCM 'out' buffer: %d", bufferLength)
 
-	paStream, err := portaudio.OpenDefaultStream(0, 1, float64(16000), bufferLength, func(out []int16) {
+	paStream, err := portaudio.OpenDefaultStream(0, 1, float64(sampleRate), bufferLength, func(out []int16) {
 		if w.queueOccupancyWarning(w.opusBufferQueue.Len()) {
 			w.log.Warnf("Buffer queue length %d occupancy %.2f%%", w.opusBufferQueue.Len(), w.queueOccupancyPercent(w.opusBufferQueue.Len()))
 		}

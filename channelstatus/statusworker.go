@@ -40,7 +40,7 @@ func NewStatusWorker(workers *worker.Workers, id int, label string) *StatusWorke
 }
 
 // Run is main function of this worker
-func (w *StatusWorker) Run(wg *sync.WaitGroup) {
+func (w *StatusWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 	w.log.Debugf("Worker Started")
 
@@ -64,8 +64,17 @@ waitloop:
 				continue
 			}
 
+			if w.closedChannel(c) {
+				w.log.Errorf("Error - Exiting - User: '%s' Channel Closed: '%s'", viper.GetString("logon.username"), c.Channel)
+				w.log.Tracef("Requesting application termination")
+				*term <- 1
+				continue
+			}
+
 			if w.blockedOnChannel(c) {
 				w.log.Errorf("Error - Exiting - User: '%s' Blocked on Channel: '%s'", viper.GetString("logon.username"), c.Channel)
+				w.log.Tracef("Requesting application termination")
+				*term <- 1
 				continue
 			}
 
@@ -87,7 +96,7 @@ waitloop:
 				statusMessage.WriteString("NO Locations )")
 			}
 
-			w.log.Infof(statusMessage.String(), c.Channel, c.Status, c.UsersOnline)
+			w.log.Debugf(statusMessage.String(), c.Channel, c.Status, c.UsersOnline)
 
 		case streamCommand, more := <-w.command:
 			if more {
@@ -147,6 +156,27 @@ func (w *StatusWorker) blockedOnChannel(c *protocolapp.OnChannelStatus) bool {
 	*/
 	if strings.EqualFold(c.ErrorType, "unknown") &&
 		strings.EqualFold(c.Error, "blocked") &&
+		strings.EqualFold(c.Status, "offline") &&
+		c.UsersOnline == 0 {
+		return true
+	}
+	return false
+}
+
+func (w *StatusWorker) closedChannel(c *protocolapp.OnChannelStatus) bool {
+	/*
+	   Check for offline channel
+	   =========================
+
+	   If so then bail -- unrecoverable error
+
+	   c.Error == "channel_closed"
+	   c.ErrorType == "unknown"
+	   c.Status == "offline"
+	   c.UsersOnline == 0
+	*/
+	if strings.EqualFold(c.ErrorType, "unknown") &&
+		strings.EqualFold(c.Error, "channel_closed") &&
 		strings.EqualFold(c.Status, "offline") &&
 		c.UsersOnline == 0 {
 		return true
