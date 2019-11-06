@@ -57,7 +57,7 @@ func NewStreamWorker(workers *worker.Workers, id int, label string) *StreamWorke
 }
 
 // Run is main function of this worker
-func (w *StreamWorker) Run(wg *sync.WaitGroup) {
+func (w *StreamWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 	w.log.Debugf("Worker Started")
 

@@ -42,7 +42,7 @@ func NewAuthWorker(workers *worker.Workers, id int, label string) *AuthWorker {
 }
 
 // Run is main function of this worker
-func (w *AuthWorker) Run(wg *sync.WaitGroup) {
+func (w *AuthWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 	w.log.Debugf("Worker Started")
 
@@ -82,9 +82,26 @@ waitloop:
 				w.setLoggedOn()
 				continue
 			}
+			if !resp.Success && resp.Seq == 1 && resp.Error == "invalid password" {
+				w.log.Error("Logon failure - invalid password - requesting application termination")
+				*term <- 1
+				continue
+			}
+
+			if !resp.Success && resp.Seq == 1 && resp.Error == "invalid username" {
+				w.log.Error("Logon failure - invalid username - requesting application termination")
+				*term <- 1
+				continue
+			}
+
+			if !resp.Success && resp.Seq == 1 && resp.Error == "not authorized" {
+				w.log.Error("Logon failure - invalid authorisation token - requesting application termination")
+				*term <- 1
+				continue
+			}
 
 		case errorMessage := <-errorChannel:
-			w.log.Debugf("Response: %s", string(errorMessage.([]byte)))
+			w.log.Debugf("Error: %s", string(errorMessage.([]byte)))
 
 		case logonCommand, more := <-w.command:
 			if more {

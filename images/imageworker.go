@@ -59,7 +59,7 @@ func NewImageWorker(workers *worker.Workers, id int, label string) *ImageWorker 
 }
 
 // Run is main function of this worker
-func (w *ImageWorker) Run(wg *sync.WaitGroup) {
+func (w *ImageWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 	w.log.Debugf("Worker Started")
 

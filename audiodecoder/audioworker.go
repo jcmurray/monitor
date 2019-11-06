@@ -41,7 +41,7 @@ func NewAudioWorker(workers *worker.Workers, id int, label string) *AudioWorker 
 }
 
 // Run is main function of this worker
-func (w *AudioWorker) Run(wg *sync.WaitGroup) {
+func (w *AudioWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	defer wg.Done()
 
 	w.log.Debugf("Worker Started")
