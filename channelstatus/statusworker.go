@@ -96,7 +96,7 @@ waitloop:
 				statusMessage.WriteString("NO Locations )")
 			}
 
-			w.log.Infof(statusMessage.String(), c.Channel, c.Status, c.UsersOnline)
+			w.log.Debugf(statusMessage.String(), c.Channel, c.Status, c.UsersOnline)
 
 		case streamCommand, more := <-w.command:
 			if more {

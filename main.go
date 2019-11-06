@@ -65,6 +65,11 @@ func main() {
 
 	viper.SetDefault("image.logging", DefaultImageLogging)
 
+	viper.SetDefault("audio.framerate", DefaultFrameRate)
+	viper.SetDefault("audio.samplerate", DefaultSampleRate)
+	viper.SetDefault("audio.channels", DefaultChannels)
+	viper.SetDefault("audio.framesperpacket", DefaultFramesPerPacket)
+
 	if err := viper.ReadInConfig(); err != nil {
 		mlog.Fatalf("Config file error: %s", err)
 	}

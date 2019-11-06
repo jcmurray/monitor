@@ -13,3 +13,8 @@ location:
   what3wordsapikey: 78NE8CPA
 image:
   logging: true
+audio:
+  framerate: 60
+  samplerate: 16000
+  channels: 1
+  framesperpacket: 2
