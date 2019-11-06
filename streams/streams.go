@@ -120,7 +120,7 @@ waitloop:
 
 			if _, ok := w.activeStreams[int(streamID)]; ok {
 				w.log.Tracef("Start of Opus Packet %d received on stream ID %d: %#v ...", packetID, streamID, data[:6])
-				au := w.findAudiotWorker()
+				au := w.findAudioWorker()
 				au.Data(data)
 			} else {
 				w.log.Errorf("Unrecognised Audio StreamId %d", streamID)
@@ -174,7 +174,7 @@ func (w *StreamWorker) findNetWorker() *network.Networker {
 }
 
 // FindAudioWorker find Audio worker
-func (w *StreamWorker) findAudiotWorker() *audiodecoder.AudioWorker {
+func (w *StreamWorker) findAudioWorker() *audiodecoder.AudioWorker {
 	for i := range *w.workers {
 		switch (*w.workers)[i].(type) {
 		case *audiodecoder.AudioWorker:
