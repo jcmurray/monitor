@@ -11,3 +11,5 @@ logon:
 location:
   what3words: true
   what3wordsapikey: 78NE8CPA
+image:
+  logging: true

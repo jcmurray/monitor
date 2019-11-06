@@ -6,12 +6,15 @@ package images
 import (
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
+	"os"
 	"sync"
 
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/protocolapp"
 	"github.com/jcmurray/monitor/worker"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 const ()
@@ -101,15 +104,17 @@ waitloop:
 			message := imageData.([]byte)
 			messageID := binary.BigEndian.Uint32(message[1:5])
 			imageType := binary.BigEndian.Uint32(message[5:9])
-			//data := message[9:]
+			data := message[9:]
 
 			if ai, ok := w.activeImages[int(messageID)]; ok {
 				switch imageType {
 				case 1:
 					w.log.Debugf("Full Image received on message ID %d", messageID)
+					w.saveFullImageFile(ai, data)
 					ai.fullImageReceived = true
 				case 2:
 					w.log.Debugf("Full Image received on message ID %d", messageID)
+					w.saveThumbNailImageFile(ai, data)
 					ai.thumbnailReceived = true
 				default:
 					w.log.Errorf("Unrecognised image packet type: %d, for message ID: %d", imageType, messageID)
@@ -165,4 +170,32 @@ func (w *ImageWorker) findNetWorker() *network.Networker {
 		}
 	}
 	return nil
+}
+
+func (w *ImageWorker) saveFullImageFile(ai *ImageInfo, data []byte) {
+	if viper.GetBool("image.logging") {
+		fileNameFull := fmt.Sprintf("image_full_%d_%s.%s", ai.MessageID, ai.Source, ai.Type)
+		w.log.Debugf("Logging full      image on message ID %d to file: %s", ai.MessageID, fileNameFull)
+		w.saveImageFile(ai, fileNameFull, data)
+	}
+}
+
+func (w *ImageWorker) saveThumbNailImageFile(ai *ImageInfo, data []byte) {
+	if viper.GetBool("image.logging") {
+		fileNameThumb := fmt.Sprintf("image_thumb_%d_%s.%s", ai.MessageID, ai.Source, ai.Type)
+		log.Debugf("Logging thumbnail image on message ID %d to file: %s", ai.MessageID, fileNameThumb)
+		w.saveImageFile(ai, fileNameThumb, data)
+	}
+}
+
+func (w *ImageWorker) saveImageFile(ai *ImageInfo, fileName string, data []byte) {
+	f, err := os.Create(fileName)
+	if err != nil {
+		w.log.Errorf("Image file creation error: %s", err)
+	}
+	defer f.Close()
+	_, err = f.Write(data)
+	if err != nil {
+		log.Errorf("Error writing image file for message ID %d, %v", ai.MessageID, err)
+	}
 }
