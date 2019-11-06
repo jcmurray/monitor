@@ -11,6 +11,8 @@ const (
 	DefaultPath        = "/ws"
 	DefaultProtocol    = "wss"
 	DefaultListenOnly  = true
+	DefaulW3WAPIKey    = "DEADBEEF"
+	DefaultUseW3W      = false
 )
 
 // LogLevelStrings for config file

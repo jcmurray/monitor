@@ -1,0 +1,141 @@
+// cSpell.language:en-GB
+// cSpell:disable
+
+package audiodecoder
+
+import (
+	"sync"
+
+	"github.com/Workiva/go-datastructures/queue"
+	"github.com/gordonklaus/portaudio"
+	"github.com/hraban/opus"
+	"github.com/jcmurray/monitor/worker"
+	log "github.com/sirupsen/logrus"
+)
+
+const (
+	defaultQueueSize    = 20
+	defaultQueueGetSize = 5
+)
+
+// AudioWorker stream worker
+type AudioWorker struct {
+	sync.Mutex
+	command         chan int
+	log             *log.Entry
+	id              int
+	label           string
+	workers         *worker.Workers
+	opusBufferQueue *queue.Queue
+}
+
+// NewAudioWorker create a new AudioWorker
+func NewAudioWorker(workers *worker.Workers, id int, label string) *AudioWorker {
+	return &AudioWorker{
+		command: make(chan int),
+		id:      id,
+		label:   label,
+		log:     log.WithFields(log.Fields{"Label": label, "ID": id}),
+		workers: workers,
+	}
+}
+
+// Run is main function of this worker
+func (w *AudioWorker) Run(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	w.log.Debugf("Worker Started")
+
+	portaudio.Initialize()
+
+	w.opusBufferQueue = queue.New(defaultQueueSize)
+	dec, err := opus.NewDecoder(16000, 1)
+	if err != nil {
+		w.log.Errorf("Error creating decoder: %s", err)
+		return
+	}
+	bufferLength := 60 * 16000 * 1 * 2 / 1000
+	pcm := make([]int16, int(bufferLength))
+
+	w.log.Debugf("Audio loop setup calculated buffer length for PCM 'out' buffer: %d", bufferLength)
+
+	paStream, err := portaudio.OpenDefaultStream(0, 1, float64(16000), bufferLength, func(out []int16) {
+		if w.queueOccupancyWarning(w.opusBufferQueue.Len()) {
+			w.log.Warnf("Buffer queue length %d occupancy %.2f%%", w.opusBufferQueue.Len(), w.queueOccupancyPercent(w.opusBufferQueue.Len()))
+		}
+		bufferList, err := w.opusBufferQueue.Get(defaultQueueGetSize)
+		if err != nil {
+			w.log.Errorf("PortAudio callback error getting buffer list from queue, %s", err)
+			return
+		}
+
+		// bufferList is [][]interface{} te be interpretted as [][]byte
+
+		for i := range bufferList {
+			buffer := bufferList[i]
+			n, err := dec.Decode(buffer.([]byte), pcm)
+			if err != nil {
+				log.Errorf("Error decoding: %s", err)
+				continue
+			}
+			pcmBuffer := pcm[0:n]
+			copy(out, pcmBuffer)
+			w.log.Tracef("Audio loop, 'out' buffer length: %d, PCM buffer length: %d", len(out), len(pcmBuffer))
+			w.log.Tracef("Start of Buffer sent to PortAudio: %#v ...", pcmBuffer[:10])
+		}
+	})
+
+	if err != nil {
+		w.log.Errorf("Failed to open PortAudio Stream, %s", err)
+		return
+	}
+	w.log.Debug("PortAudio Stream opened")
+	paStream.Start()
+	w.log.Debug("PortAudio Stream started")
+
+waitloop:
+	for {
+		w.log.Debugf("Entering Select")
+		select {
+
+		case audioCommand, more := <-w.command:
+			if more {
+				w.log.Debugf("Received command %d", audioCommand)
+				switch audioCommand {
+				case worker.Terminate:
+					w.log.Debugf("Terminating")
+					break waitloop
+				default:
+					continue
+				}
+			} else {
+				w.log.Info("Channel closed")
+				break waitloop
+			}
+		}
+	}
+	w.log.Debug("Finished")
+}
+
+// Data sent to this worker
+func (w *AudioWorker) Data(d []byte) {
+	w.opusBufferQueue.Put(d)
+}
+
+// Command sent to this worker
+func (w *AudioWorker) Command(c int) {
+	w.command <- c
+}
+
+// Terminate the worker
+func (w *AudioWorker) Terminate() {
+	w.Command(worker.Terminate)
+}
+
+func (w *AudioWorker) queueOccupancyWarning(level int64) bool {
+	return ((defaultQueueSize - level) < defaultQueueGetSize)
+}
+
+func (w *AudioWorker) queueOccupancyPercent(level int64) float64 {
+	return (100.00 * (float64(level) / float64(defaultQueueSize)))
+}

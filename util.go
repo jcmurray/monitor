@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/jcmurray/monitor/authenticate"
 	"github.com/jcmurray/monitor/worker"
 )
 
@@ -48,13 +47,15 @@ check:
 	}
 }
 
-// FindAuthWorker find Auth worker
-func FindAuthWorker() interface{} {
-	for i := range workers {
-		switch workers[i].(type) {
-		case *authenticate.AuthWorker:
-			return workers[i]
-		}
-	}
-	return nil
-}
+//
+//// FindAuthWorker find Auth worker
+//func FindAuthWorker() interface{} {
+//	for i := range workers {
+//		switch workers[i].(type) {
+//		case *authenticate.AuthWorker:
+//			return workers[i]
+//		}
+//	}
+//	return nil
+//}
+//

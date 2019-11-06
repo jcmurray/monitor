@@ -10,8 +10,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jcmurray/monitor/audiodecoder"
 	"github.com/jcmurray/monitor/authenticate"
+	"github.com/jcmurray/monitor/channelstatus"
+	"github.com/jcmurray/monitor/images"
+	"github.com/jcmurray/monitor/locations"
 	"github.com/jcmurray/monitor/network"
+	"github.com/jcmurray/monitor/streams"
+	"github.com/jcmurray/monitor/texts"
 	"github.com/jcmurray/monitor/worker"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -52,6 +58,9 @@ func main() {
 	viper.SetDefault("server.port", DefaultPort)
 	viper.SetDefault("log.listen_only", DefaultListenOnly)
 
+	viper.SetDefault("location.what3wordsapikey", DefaulW3WAPIKey)
+	viper.SetDefault("location.what3words", DefaultUseW3W)
+
 	if err := viper.ReadInConfig(); err != nil {
 		mlog.Fatalf("Config file error: %s", err)
 	}
@@ -90,10 +99,41 @@ func main() {
 	go networker.Run(&waitGroup)
 	networker.Command(worker.Connect)
 
-	authworker := authenticate.NewAuthworker(&workers, NewID(workers), "Auth Worker")
+	authworker := authenticate.NewAuthWorker(&workers, NewID(workers), "Auth Worker")
 	workers = append(workers, authworker)
 	waitGroup.Add(1)
 	go authworker.Run(&waitGroup)
+	authworker.Command(worker.Logon)
+
+	streamworker := streams.NewStreamWorker(&workers, NewID(workers), "Stream Worker")
+	workers = append(workers, streamworker)
+	waitGroup.Add(1)
+	go streamworker.Run(&waitGroup)
+
+	statusworker := channelstatus.NewStatusWorker(&workers, NewID(workers), "Status Worker")
+	workers = append(workers, statusworker)
+	waitGroup.Add(1)
+	go statusworker.Run(&waitGroup)
+
+	imageworker := images.NewImageWorker(&workers, NewID(workers), "Image Worker")
+	workers = append(workers, imageworker)
+	waitGroup.Add(1)
+	go imageworker.Run(&waitGroup)
+
+	textworker := texts.NewTextMessageWorker(&workers, NewID(workers), "Text Message Worker")
+	workers = append(workers, textworker)
+	waitGroup.Add(1)
+	go textworker.Run(&waitGroup)
+
+	locationworker := locations.NewLocationWorker(&workers, NewID(workers), "Location Worker")
+	workers = append(workers, locationworker)
+	waitGroup.Add(1)
+	go locationworker.Run(&waitGroup)
+
+	audioworker := audiodecoder.NewAudioWorker(&workers, NewID(workers), "Audio Worker")
+	workers = append(workers, audioworker)
+	waitGroup.Add(1)
+	go audioworker.Run(&waitGroup)
 
 waitLoop:
 	for {
@@ -116,15 +156,23 @@ waitLoop:
 			case <-done:
 			case <-time.After(time.Second):
 				mlog.Debug("Grace period timer expired -- exiting")
+
+				audioworker.Terminate()
+				imageworker.Terminate()
+				textworker.Terminate()
+				locationworker.Terminate()
+				statusworker.Terminate()
+				streamworker.Terminate()
 				authworker.Terminate()
 				networker.Terminate()
+
 				close(done)
 			}
 			break waitLoop
 		}
 	}
-	mlog.Info("Finished monitoring events")
-	mlog.Info("Waiting for workers to finish")
+	mlog.Debug("Finished monitoring events")
+	mlog.Debug("Waiting for workers to finish")
 	waitGroup.Wait()
 	mlog.Info("Completed")
 }

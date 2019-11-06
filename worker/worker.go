@@ -33,6 +33,7 @@ type Subscription struct {
 	Type    string
 	Label   string
 	Channel chan interface{}
+	Next    *Subscription
 }
 
 // NewSubscription create a new subscription
@@ -42,5 +43,6 @@ func NewSubscription(sID int, sType string, label string) *Subscription {
 		Type:    sType,
 		Label:   label,
 		Channel: make(chan interface{}, 2),
+		Next:    nil,
 	}
 }
