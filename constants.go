@@ -5,7 +5,7 @@ package main
 
 // Version: Version string for the app
 const (
-	ApplicationVersion     = "0.0.0"
+	ApplicationVersion     = "0.1.0"
 	DefaultHostname        = "zello.io"
 	DefaultPort            = 443
 	DefaultPath            = "/ws"
