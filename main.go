@@ -61,6 +61,8 @@ func main() {
 	viper.SetDefault("location.what3wordsapikey", DefaulW3WAPIKey)
 	viper.SetDefault("location.what3words", DefaultUseW3W)
 
+	viper.SetDefault("image.logging", DefaultImageLogging)
+
 	if err := viper.ReadInConfig(); err != nil {
 		mlog.Fatalf("Config file error: %s", err)
 	}

@@ -5,14 +5,15 @@ package main
 
 // Version: Version string for the app
 const (
-	ApplicationVersion = "0.0.0"
-	DefaultHostname    = "zello.io"
-	DefaultPort        = 443
-	DefaultPath        = "/ws"
-	DefaultProtocol    = "wss"
-	DefaultListenOnly  = true
-	DefaulW3WAPIKey    = "DEADBEEF"
-	DefaultUseW3W      = false
+	ApplicationVersion  = "0.0.0"
+	DefaultHostname     = "zello.io"
+	DefaultPort         = 443
+	DefaultPath         = "/ws"
+	DefaultProtocol     = "wss"
+	DefaultListenOnly   = true
+	DefaulW3WAPIKey     = "DEADBEEF"
+	DefaultUseW3W       = false
+	DefaultImageLogging = false
 )
 
 // LogLevelStrings for config file
