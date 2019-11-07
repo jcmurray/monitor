@@ -76,8 +76,9 @@ brew install opus-tools
 On Ubuntu:
 
 ```shell
-sudo apt-get install opus-tools
+sudo apt-get install pkg-config libopus-dev libopusfile-dev
 ```
+
 I can't vouch for any other platforms.
 
 Once these prerequisites are installed you can install the application itself as:
