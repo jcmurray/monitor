@@ -49,7 +49,7 @@ type ImageWorker struct {
 // NewImageWorker create a new ImageWorker
 func NewImageWorker(workers *worker.Workers, id int, label string) *ImageWorker {
 	return &ImageWorker{
-		command:      make(chan int),
+		command:      make(chan int, 10),
 		id:           id,
 		label:        label,
 		log:          log.WithFields(log.Fields{"Label": label, "ID": id}),

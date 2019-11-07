@@ -50,7 +50,7 @@ Configuration is via a YAML configuration file which is read and parsed using th
 
 The application uses a Golang wrapper to talk to the [PortAudio](http://www.portaudio.com) libraries and you need to ensure the PortAudio package itself is correctly installed on your computer. PortAudio is used to play audio streams directly to the PCs sound card. There are binary and source distributions available on the PortAudio web site and some simple installations using a package manager for your specific platform:
 
-For example on MacOS, where I've developed and tested the application, it's available from *HomeBrew*:
+For example on MacOS, where I've developed and tested the application, it's available from **HomeBrew**:
 
 ```shell
 brew install portaudio
@@ -58,7 +58,7 @@ brew install portaudio
 
 On Ubuntu:
 
-``shell
+```shell
 sudo apt-get install portaudio19-dev
 ```
 
@@ -66,7 +66,7 @@ I can't vouch for any other platforms.
 
 Zello uses the OPUS Audio Codec to transmit audio packets over WebSockets. OPUS packets are highly compressed and ideal for VoIP applications. This application decodes the OPUS packets into a PCM stream, ( signed, 16-bit integers, mono at 16000 samples per second). It does this using a Golang wrapper but the underlying [OPUS](https://opus-codec.org) libraries that need to be installed on your computer. There are binary and source distributions available on the OPUS web site and some simple installations using a package manager for your specific platform.
 
-For example on MacOS, where I've developed and tested the application, it's available from *HomeBrew*:
+For example on MacOS, where I've developed and tested the application, it's available from **HomeBrew**:
 
 ```shell
 brew install opus
