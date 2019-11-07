@@ -4,7 +4,7 @@
 This project is licensed under the terms of the MIT license.
 
 It provides a simple example of a Golang application that uses the
-[Zello Websocket API](https://github.com/zelloptt/zello-channel-api/blob/master/API.md).
+[Zello Websocket API](https://github.com/zelloptt/zello-channel-api/blob/master/API.md). It's simply a toy that I wrote to understand how Zello actually worked and hopefully you can find some educational use in it.
 
 # This sample application 
 

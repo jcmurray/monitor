@@ -30,7 +30,7 @@ type LocationWorker struct {
 // NewLocationWorker create a new LocationWorker
 func NewLocationWorker(workers *worker.Workers, id int, label string) *LocationWorker {
 	return &LocationWorker{
-		command: make(chan int),
+		command: make(chan int, 10),
 		id:      id,
 		label:   label,
 		log:     log.WithFields(log.Fields{"Label": label, "ID": id}),

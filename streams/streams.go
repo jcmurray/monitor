@@ -47,7 +47,7 @@ type StreamWorker struct {
 // NewStreamWorker create a new Streamworker
 func NewStreamWorker(workers *worker.Workers, id int, label string) *StreamWorker {
 	return &StreamWorker{
-		command:       make(chan int),
+		command:       make(chan int, 10),
 		id:            id,
 		label:         label,
 		log:           log.WithFields(log.Fields{"Label": label, "ID": id}),

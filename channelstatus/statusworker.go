@@ -31,7 +31,7 @@ type StatusWorker struct {
 // NewStatusWorker create a new Statusworker
 func NewStatusWorker(workers *worker.Workers, id int, label string) *StatusWorker {
 	return &StatusWorker{
-		command: make(chan int),
+		command: make(chan int, 10),
 		id:      id,
 		label:   label,
 		log:     log.WithFields(log.Fields{"Label": label, "ID": id}),

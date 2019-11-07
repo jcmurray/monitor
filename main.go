@@ -47,7 +47,7 @@ func main() {
 		waitGroup        sync.WaitGroup
 	)
 	done = make(chan struct{})
-	terminateRequest = make(chan int)
+	terminateRequest = make(chan int, 10)
 	interrupt = make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	timeLogger := time.NewTicker(10 * 60 * time.Second)
@@ -163,21 +163,34 @@ func main() {
 
 waitLoop:
 	for {
+		terminateRequestReceived := false
 		select {
 		case <-terminateRequest:
 			mlog.Debug("Received 'terminateRequest' event")
-			close(done)
+			if !terminateRequestReceived {
+				// Don't double close() channel
+				mlog.Debug("Closing 'done' channel")
+				close(done)
+			}
 
 		case <-done:
 			mlog.Debug("Received 'done' event")
 			audioworker.Terminate()
+			mlog.Debug("Terminated audioworker")
 			imageworker.Terminate()
+			mlog.Debug("Terminated imageworker")
 			textworker.Terminate()
+			mlog.Debug("Terminated textworker")
 			locationworker.Terminate()
+			mlog.Debug("Terminated locationworker")
 			statusworker.Terminate()
+			mlog.Debug("Terminated statusworker")
 			streamworker.Terminate()
+			mlog.Debug("Terminated streamworker")
 			authworker.Terminate()
+			mlog.Debug("Terminated authworker")
 			networker.Terminate()
+			mlog.Debug("Terminated networker")
 			break waitLoop
 
 		case <-timeLogger.C:
