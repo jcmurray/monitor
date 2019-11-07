@@ -62,7 +62,7 @@ func main() {
 	viper.SetConfigName(config)
 	viper.AddConfigPath(".")
 
-	viper.SetDefault("loglevel", LogLevelStrings[LogLevelTrace])
+	viper.SetDefault("loglevel", LogLevelStrings[LogLevelInfo])
 	viper.BindPFlag("loglevel", pflag.Lookup("loglevel"))
 
 	viper.SetDefault("server.host", DefaultHostname)
