@@ -12,5 +12,6 @@ require (
 	github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9
 	github.com/juju/testing v0.0.0-20191001232224-ce9dec17d28b // indirect
 	github.com/sirupsen/logrus v1.4.2
+	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.5.0
 )

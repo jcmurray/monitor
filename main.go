@@ -21,6 +21,7 @@ import (
 	"github.com/jcmurray/monitor/worker"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -36,7 +37,6 @@ func init() {
 	clog.FullTimestamp = true
 	log.SetLevel(log.DebugLevel)
 	mlog = log.WithFields(log.Fields{"Component": "Main"})
-
 }
 
 func main() {
@@ -47,15 +47,24 @@ func main() {
 		waitGroup        sync.WaitGroup
 	)
 	done = make(chan struct{})
-	terminateRequest = make(chan int)
+	terminateRequest = make(chan int, 10)
 	interrupt = make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	timeLogger := time.NewTicker(10 * 60 * time.Second)
 
-	viper.SetConfigName("config")
+	var config string
+	var loglevel string
+
+	pflag.StringVarP(&config, "config", "c", "config", "Name of configuration to use, without the .yaml or .json etc. suffix")
+	pflag.StringVarP(&loglevel, "loglevel", "l", "info", "Log level to set: info, warn, error, debug, trace, fatal, panic")
+	pflag.Parse()
+
+	viper.SetConfigName(config)
 	viper.AddConfigPath(".")
 
-	viper.SetDefault("loglevel", LogLevelStrings[LogLevelTrace])
+	viper.SetDefault("loglevel", LogLevelStrings[LogLevelInfo])
+	viper.BindPFlag("loglevel", pflag.Lookup("loglevel"))
+
 	viper.SetDefault("server.host", DefaultHostname)
 	viper.SetDefault("server.port", DefaultPort)
 	viper.SetDefault("log.listen_only", DefaultListenOnly)
@@ -75,6 +84,7 @@ func main() {
 	}
 
 	configLogLevel := viper.GetString("loglevel")
+	foundLogLevel := false
 	for i := range LogLevelStrings {
 		if strings.EqualFold(LogLevelStrings[i], configLogLevel) {
 			mlog.Infof("Logging level being set to %s", LogLevelStrings[i])
@@ -97,7 +107,14 @@ func main() {
 			default:
 				log.SetLevel(log.InfoLevel)
 			}
+			foundLogLevel = true
+			break
 		}
+	}
+	if !foundLogLevel {
+		mlog.Infof("Unknown logging level, defaulting to %s", LogLevelStrings[LogLevelInfo])
+		mlog.Info("")
+		log.SetLevel(log.InfoLevel)
 	}
 
 	mlog.Info("Starting network worker")
@@ -146,21 +163,34 @@ func main() {
 
 waitLoop:
 	for {
+		terminateRequestReceived := false
 		select {
 		case <-terminateRequest:
 			mlog.Debug("Received 'terminateRequest' event")
-			close(done)
+			if !terminateRequestReceived {
+				// Don't double close() channel
+				mlog.Debug("Closing 'done' channel")
+				close(done)
+			}
 
 		case <-done:
 			mlog.Debug("Received 'done' event")
 			audioworker.Terminate()
+			mlog.Debug("Terminated audioworker")
 			imageworker.Terminate()
+			mlog.Debug("Terminated imageworker")
 			textworker.Terminate()
+			mlog.Debug("Terminated textworker")
 			locationworker.Terminate()
+			mlog.Debug("Terminated locationworker")
 			statusworker.Terminate()
+			mlog.Debug("Terminated statusworker")
 			streamworker.Terminate()
+			mlog.Debug("Terminated streamworker")
 			authworker.Terminate()
+			mlog.Debug("Terminated authworker")
 			networker.Terminate()
+			mlog.Debug("Terminated networker")
 			break waitLoop
 
 		case <-timeLogger.C:

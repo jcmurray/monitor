@@ -54,7 +54,7 @@ type Networker struct {
 func NewNetworker(workers *worker.Workers, id int, label string) *Networker {
 	return &Networker{
 		connected:      false,
-		command:        make(chan int, 2),
+		command:        make(chan int, 10),
 		id:             id,
 		label:          label,
 		log:            log.WithFields(log.Fields{"Label": label, "ID": id}),
@@ -124,25 +124,29 @@ waitloop:
 				case 3001:
 					w.log.Trace("Exiting due to channel closed")
 					w.setDisconnected()
+					w.Command(worker.Terminate)
 					*term <- 1
 
 				case 3002:
 					w.log.Trace("Exiting due to invalid credentials")
 					w.setDisconnected()
+					w.Command(worker.Terminate)
 					*term <- 1
 
 				default:
-					w.log.Trace("Exiting due to unrecognised websocket close code=%s", err)
+					w.log.Tracef("Exiting due to unrecognised websocket close code=%s", err)
 					w.setDisconnected()
+					w.Command(worker.Terminate)
 					*term <- 1
 				}
 			} else {
-				w.log.Trace("WebSocket exited with non-close indication, err=%s", err)
+				w.log.Tracef("WebSocket exited with non-close indication, err=%s", err)
 			}
 		} else {
 			w.log.Debugf("Entering Select")
 			select {
 			case netCommand, more := <-w.command:
+				w.log.Tracef("netCommand, more := <-w.command:")
 				if more {
 					w.log.Debugf("Received command %d", netCommand)
 					switch netCommand {
@@ -171,6 +175,7 @@ waitloop:
 					break waitloop
 				}
 			case <-ticker.C:
+				w.log.Tracef("case <-ticker.C:")
 				if w.isConnected() {
 					w.log.Debug("Sending Ping")
 					err := w.webSocket.WriteMessage(websocket.PingMessage, []byte(""))
@@ -181,6 +186,7 @@ waitloop:
 				continue
 
 			case <-time.After(time.Second * w.thisInterval):
+				w.log.Tracef("time.Second * w.thisInterval")
 				if w.isRetrying() {
 					if err := connect(w); err != nil {
 						w.log.Error("Connection failure")

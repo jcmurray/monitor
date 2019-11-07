@@ -32,7 +32,7 @@ type AuthWorker struct {
 // NewAuthWorker create a new Logworker
 func NewAuthWorker(workers *worker.Workers, id int, label string) *AuthWorker {
 	return &AuthWorker{
-		command:  make(chan int),
+		command:  make(chan int, 10),
 		id:       id,
 		label:    label,
 		log:      log.WithFields(log.Fields{"Label": label, "ID": id}),
@@ -53,7 +53,7 @@ func (w *AuthWorker) Run(wg *sync.WaitGroup, term *chan int) {
 
 waitloop:
 	for {
-		w.log.Debugf("Entering Select")
+		w.log.Tracef("Entering Select")
 		select {
 		case connected := <-connectionChannel:
 			w.log.Tracef("case connected := <-connectionChannel: %s", string(connected.([]byte)))
@@ -85,19 +85,19 @@ waitloop:
 			if !resp.Success && resp.Seq == 1 && resp.Error == "invalid password" {
 				w.log.Error("Logon failure - invalid password - requesting application termination")
 				*term <- 1
-				continue
+				break waitloop
 			}
 
 			if !resp.Success && resp.Seq == 1 && resp.Error == "invalid username" {
 				w.log.Error("Logon failure - invalid username - requesting application termination")
 				*term <- 1
-				continue
+				break waitloop
 			}
 
 			if !resp.Success && resp.Seq == 1 && resp.Error == "not authorized" {
 				w.log.Error("Logon failure - invalid authorisation token - requesting application termination")
 				*term <- 1
-				continue
+				break waitloop
 			}
 
 		case errorMessage := <-errorChannel:

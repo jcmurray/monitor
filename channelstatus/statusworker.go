@@ -31,7 +31,7 @@ type StatusWorker struct {
 // NewStatusWorker create a new Statusworker
 func NewStatusWorker(workers *worker.Workers, id int, label string) *StatusWorker {
 	return &StatusWorker{
-		command: make(chan int),
+		command: make(chan int, 10),
 		id:      id,
 		label:   label,
 		log:     log.WithFields(log.Fields{"Label": label, "ID": id}),
@@ -96,7 +96,7 @@ waitloop:
 				statusMessage.WriteString("NO Locations )")
 			}
 
-			w.log.Debugf(statusMessage.String(), c.Channel, c.Status, c.UsersOnline)
+			w.log.Infof(statusMessage.String(), c.Channel, c.Status, c.UsersOnline)
 
 		case streamCommand, more := <-w.command:
 			if more {

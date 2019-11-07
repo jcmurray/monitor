@@ -33,7 +33,7 @@ type AudioWorker struct {
 // NewAudioWorker create a new AudioWorker
 func NewAudioWorker(workers *worker.Workers, id int, label string) *AudioWorker {
 	return &AudioWorker{
-		command: make(chan int),
+		command: make(chan int, 10),
 		id:      id,
 		label:   label,
 		log:     log.WithFields(log.Fields{"Label": label, "ID": id}),
