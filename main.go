@@ -74,6 +74,7 @@ func main() {
 
 	viper.SetDefault("image.logging", DefaultImageLogging)
 
+	viper.SetDefault("audio.enable", DefaultEnableAudio)
 	viper.SetDefault("audio.framerate", DefaultFrameRate)
 	viper.SetDefault("audio.samplerate", DefaultSampleRate)
 	viper.SetDefault("audio.channels", DefaultChannels)

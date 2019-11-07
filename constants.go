@@ -5,7 +5,7 @@ package main
 
 // Version: Version string for the app
 const (
-	ApplicationVersion     = "0.1.2"
+	ApplicationVersion     = "0.1.3"
 	DefaultHostname        = "zello.io"
 	DefaultPort            = 443
 	DefaultPath            = "/ws"
@@ -18,6 +18,7 @@ const (
 	DefaultSampleRate      = 16000
 	DefaultChannels        = 1
 	DefaultFramesPerPacket = 2
+	DefaultEnableAudio     = true
 )
 
 // LogLevelStrings for config file
