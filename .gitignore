@@ -14,5 +14,8 @@ monitor
 *.csv
 .vscode
 
+config-MFPC.yaml
+cons.yaml
+
 .undodir
 stream_*.pcm
