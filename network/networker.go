@@ -132,12 +132,12 @@ waitloop:
 					*term <- 1
 
 				default:
-					w.log.Trace("Exiting due to unrecognised websocket close code=%s", err)
+					w.log.Tracef("Exiting due to unrecognised websocket close code=%s", err)
 					w.setDisconnected()
 					*term <- 1
 				}
 			} else {
-				w.log.Trace("WebSocket exited with non-close indication, err=%s", err)
+				w.log.Tracef("WebSocket exited with non-close indication, err=%s", err)
 			}
 		} else {
 			w.log.Debugf("Entering Select")
