@@ -28,16 +28,18 @@ type AudioWorker struct {
 	label           string
 	workers         *worker.Workers
 	opusBufferQueue *queue.Queue
+	enableAudio     bool
 }
 
 // NewAudioWorker create a new AudioWorker
 func NewAudioWorker(workers *worker.Workers, id int, label string) *AudioWorker {
 	return &AudioWorker{
-		command: make(chan int, 10),
-		id:      id,
-		label:   label,
-		log:     log.WithFields(log.Fields{"Label": label, "ID": id}),
-		workers: workers,
+		command:     make(chan int, 10),
+		id:          id,
+		label:       label,
+		log:         log.WithFields(log.Fields{"Label": label, "ID": id}),
+		workers:     workers,
+		enableAudio: viper.GetBool("audio.enable"),
 	}
 }
 
@@ -66,39 +68,59 @@ func (w *AudioWorker) Run(wg *sync.WaitGroup, term *chan int) {
 
 	w.log.Debugf("Audio loop setup calculated buffer length for PCM 'out' buffer: %d", bufferLength)
 
-	paStream, err := portaudio.OpenDefaultStream(0, 1, float64(sampleRate), bufferLength, func(out []int16) {
-		if w.queueOccupancyWarning(w.opusBufferQueue.Len()) {
-			w.log.Warnf("Buffer queue length %d occupancy %.2f%%", w.opusBufferQueue.Len(), w.queueOccupancyPercent(w.opusBufferQueue.Len()))
-		}
-		bufferList, err := w.opusBufferQueue.Get(defaultQueueGetSize)
+	if w.enableAudio {
+		paStream, err := portaudio.OpenDefaultStream(0, 1, float64(sampleRate), bufferLength, func(out []int16) {
+			if w.queueOccupancyWarning(w.opusBufferQueue.Len()) {
+				w.log.Warnf("Buffer queue length %d occupancy %.2f%%", w.opusBufferQueue.Len(), w.queueOccupancyPercent(w.opusBufferQueue.Len()))
+			}
+			bufferList, err := w.opusBufferQueue.Get(defaultQueueGetSize)
+			if err != nil {
+				w.log.Errorf("PortAudio callback error getting buffer list from queue, %s", err)
+				return
+			}
+
+			// bufferList is [][]interface{} te be interpretted as [][]byte
+
+			for i := range bufferList {
+				buffer := bufferList[i]
+				n, err := dec.Decode(buffer.([]byte), pcm)
+				if err != nil {
+					log.Errorf("Error decoding: %s", err)
+					continue
+				}
+				pcmBuffer := pcm[0:n]
+				copy(out, pcmBuffer)
+				w.log.Tracef("Audio loop, 'out' buffer length: %d, PCM buffer length: %d", len(out), len(pcmBuffer))
+				w.log.Tracef("Start of Buffer sent to PortAudio: %#v ...", pcmBuffer[:10])
+			}
+		})
+
 		if err != nil {
-			w.log.Errorf("PortAudio callback error getting buffer list from queue, %s", err)
+			w.log.Errorf("Failed to open PortAudio Stream, %s", err)
 			return
 		}
-
-		// bufferList is [][]interface{} te be interpretted as [][]byte
-
-		for i := range bufferList {
-			buffer := bufferList[i]
-			n, err := dec.Decode(buffer.([]byte), pcm)
-			if err != nil {
-				log.Errorf("Error decoding: %s", err)
-				continue
+		w.log.Debug("PortAudio Stream opened")
+		paStream.Start()
+		w.log.Debug("PortAudio Stream started")
+	} else {
+		/*
+		 * If audio to speaker is not enabled (PortAudio not available for example)
+		 * this go routine discards audio buffers sent to us via the opusBufferQueue
+		 */
+		go func() {
+			for {
+				_, err := w.opusBufferQueue.Get(defaultQueueGetSize)
+				if err != nil {
+					w.log.Warnf("Audio buffer queue, %s", err)
+					return
+				}
+				w.log.Tracef("Audio buffer queue entries discarded")
 			}
-			pcmBuffer := pcm[0:n]
-			copy(out, pcmBuffer)
-			w.log.Tracef("Audio loop, 'out' buffer length: %d, PCM buffer length: %d", len(out), len(pcmBuffer))
-			w.log.Tracef("Start of Buffer sent to PortAudio: %#v ...", pcmBuffer[:10])
-		}
-	})
-
-	if err != nil {
-		w.log.Errorf("Failed to open PortAudio Stream, %s", err)
-		return
+		}()
+		defer func() {
+			_ = w.opusBufferQueue.Dispose()
+		}()
 	}
-	w.log.Debug("PortAudio Stream opened")
-	paStream.Start()
-	w.log.Debug("PortAudio Stream started")
 
 waitloop:
 	for {

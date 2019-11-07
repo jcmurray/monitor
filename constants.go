@@ -18,6 +18,7 @@ const (
 	DefaultSampleRate      = 16000
 	DefaultChannels        = 1
 	DefaultFramesPerPacket = 2
+	DefaultEnableAudio     = true
 )
 
 // LogLevelStrings for config file
