@@ -185,3 +185,13 @@ func (w *StreamWorker) findAudioWorker() *audiodecoder.AudioWorker {
 	}
 	return nil
 }
+
+// Label return label of worker
+func (w *StreamWorker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *StreamWorker) ID() int {
+	return w.id
+}

@@ -16,24 +16,25 @@ const (
 
 // IF Interface
 type IF interface {
-	ID() (int, error)
-	Label() (string, error)
+	ID() int
+	Label() string
 	Run(wg *sync.WaitGroup)
 	Command(int)
 	Subscribe(int, string) *Subscription
 	UnSubscribe(int)
+	Subscriptions() []*Subscription
 }
 
 // Workers object
 type Workers []interface{}
 
-// Subscription to a messahe on a channel
+// Subscription to a message on a channel
 type Subscription struct {
-	ID      int
-	Type    string
-	Label   string
-	Channel chan interface{}
-	Next    *Subscription
+	ID      int              `json:"id,omitempty"`
+	Type    string           `json:"type,omitempty"`
+	Label   string           `json:"label,omitempty"`
+	Channel chan interface{} `json:"-"`
+	Next    *Subscription    `json:"-"`
 }
 
 // NewSubscription create a new subscription

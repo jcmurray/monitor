@@ -168,3 +168,13 @@ func (w *AudioWorker) queueOccupancyWarning(level int64) bool {
 func (w *AudioWorker) queueOccupancyPercent(level int64) float64 {
 	return (100.00 * (float64(level) / float64(defaultQueueSize)))
 }
+
+// Label return label of worker
+func (w *AudioWorker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *AudioWorker) ID() int {
+	return w.id
+}

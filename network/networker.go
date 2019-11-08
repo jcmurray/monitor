@@ -462,3 +462,25 @@ func (w *Networker) sendToSubscribersByResponseExpected(sType string, message []
 		}
 	}
 }
+
+// Label return label of worker
+func (w *Networker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *Networker) ID() int {
+	return w.id
+}
+
+// Subscriptions return a copy of current scubscriptions
+func (w *Networker) Subscriptions() []*worker.Subscription {
+	w.subscriptionsLock.Lock()
+	defer w.subscriptionsLock.Unlock()
+
+	var subCopy = make([]*worker.Subscription, 0)
+	for s := w.subscriptions; s != nil; s = s.Next {
+		subCopy = append(subCopy, s)
+	}
+	return subCopy
+}

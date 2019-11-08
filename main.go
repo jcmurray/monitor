@@ -16,6 +16,7 @@ import (
 	"github.com/jcmurray/monitor/images"
 	"github.com/jcmurray/monitor/locations"
 	"github.com/jcmurray/monitor/network"
+	"github.com/jcmurray/monitor/restapi"
 	"github.com/jcmurray/monitor/streams"
 	"github.com/jcmurray/monitor/texts"
 	"github.com/jcmurray/monitor/worker"
@@ -79,6 +80,9 @@ func main() {
 	viper.SetDefault("audio.samplerate", DefaultSampleRate)
 	viper.SetDefault("audio.channels", DefaultChannels)
 	viper.SetDefault("audio.framesperpacket", DefaultFramesPerPacket)
+
+	viper.SetDefault("rest.apienabled", DefaultRestServerEnabled)
+	viper.SetDefault("rest.apiport", DefaultRestServerPort)
 
 	if err := viper.ReadInConfig(); err != nil {
 		mlog.Fatalf("Config file error: %s", err)
@@ -162,6 +166,14 @@ func main() {
 	waitGroup.Add(1)
 	go audioworker.Run(&waitGroup, &terminateRequest)
 
+	var restapiworker *restapi.APIWorker
+	if viper.GetBool("rest.apienabled") {
+		restapiworker = restapi.NewAPIWorker(&workers, NewID(workers), "REST API Worker")
+		workers = append(workers, restapiworker)
+		waitGroup.Add(1)
+		go restapiworker.Run(&waitGroup, &terminateRequest)
+	}
+
 waitLoop:
 	for {
 		terminateRequestReceived := false
@@ -192,6 +204,11 @@ waitLoop:
 			mlog.Debug("Terminated authworker")
 			networker.Terminate()
 			mlog.Debug("Terminated networker")
+
+			if viper.GetBool("rest.apienabled") {
+				restapiworker.Terminate()
+				mlog.Debug("Terminated restapiworker ")
+			}
 			break waitLoop
 
 		case <-timeLogger.C:

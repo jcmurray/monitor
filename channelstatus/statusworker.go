@@ -204,3 +204,13 @@ func (w *StatusWorker) errorOnChannel(c *protocolapp.OnChannelStatus) bool {
 	*/
 	return (c.ErrorType != "") || (c.Error != "")
 }
+
+// Label return label of worker
+func (w *StatusWorker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *StatusWorker) ID() int {
+	return w.id
+}

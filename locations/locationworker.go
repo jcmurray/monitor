@@ -132,3 +132,13 @@ func (w *LocationWorker) what3WordsFromLatLon(lat float64, lon float64) (string,
 	}
 	return resp.Words, nil
 }
+
+// Label return label of worker
+func (w *LocationWorker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *LocationWorker) ID() int {
+	return w.id
+}

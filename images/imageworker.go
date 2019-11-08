@@ -199,3 +199,13 @@ func (w *ImageWorker) saveImageFile(ai *ImageInfo, fileName string, data []byte)
 		w.log.Errorf("Error writing image file for message ID %d, %v", ai.MessageID, err)
 	}
 }
+
+// Label return label of worker
+func (w *ImageWorker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *ImageWorker) ID() int {
+	return w.id
+}

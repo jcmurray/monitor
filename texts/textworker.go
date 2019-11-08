@@ -106,3 +106,13 @@ func (w *TextMessageWorker) findNetWorker() *network.Networker {
 	}
 	return nil
 }
+
+// Label return label of worker
+func (w *TextMessageWorker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *TextMessageWorker) ID() int {
+	return w.id
+}

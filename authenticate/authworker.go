@@ -204,3 +204,13 @@ func (w *AuthWorker) doLogon() error {
 	nw.Data([]byte(string(buff)))
 	return nil
 }
+
+// Label return label of worker
+func (w *AuthWorker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *AuthWorker) ID() int {
+	return w.id
+}
