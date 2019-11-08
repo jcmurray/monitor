@@ -75,25 +75,39 @@ func (w *APIWorker) status(resp http.ResponseWriter, req *http.Request) {
 				Name: authworker.Label()})
 		case *channelstatus.StatusWorker:
 			statusworker := (*w.workers)[i].(*channelstatus.StatusWorker)
-			report = append(report, workerDetails{ID: statusworker.ID(), Name: statusworker.Label()})
+			report = append(report, workerDetails{
+				ID:   statusworker.ID(),
+				Name: statusworker.Label()})
 		case *streams.StreamWorker:
 			streamworker := (*w.workers)[i].(*streams.StreamWorker)
-			report = append(report, workerDetails{ID: streamworker.ID(), Name: streamworker.Label()})
+			report = append(report, workerDetails{
+				ID:   streamworker.ID(),
+				Name: streamworker.Label()})
 		case *images.ImageWorker:
 			imageworker := (*w.workers)[i].(*images.ImageWorker)
-			report = append(report, workerDetails{ID: imageworker.ID(), Name: imageworker.Label()})
+			report = append(report, workerDetails{
+				ID:   imageworker.ID(),
+				Name: imageworker.Label()})
 		case *locations.LocationWorker:
 			locationworker := (*w.workers)[i].(*locations.LocationWorker)
-			report = append(report, workerDetails{ID: locationworker.ID(), Name: locationworker.Label()})
+			report = append(report, workerDetails{
+				ID:   locationworker.ID(),
+				Name: locationworker.Label()})
 		case *texts.TextMessageWorker:
 			textworker := (*w.workers)[i].(*texts.TextMessageWorker)
-			report = append(report, workerDetails{ID: textworker.ID(), Name: textworker.Label()})
+			report = append(report, workerDetails{
+				ID:   textworker.ID(),
+				Name: textworker.Label()})
 		case *audiodecoder.AudioWorker:
 			audioworker := (*w.workers)[i].(*audiodecoder.AudioWorker)
-			report = append(report, workerDetails{ID: audioworker.ID(), Name: audioworker.Label()})
+			report = append(report, workerDetails{
+				ID:   audioworker.ID(),
+				Name: audioworker.Label()})
 		case *APIWorker:
 			restapiworker := (*w.workers)[i].(*APIWorker)
-			report = append(report, workerDetails{ID: restapiworker.ID(), Name: restapiworker.Label()})
+			report = append(report, workerDetails{
+				ID:   restapiworker.ID(),
+				Name: restapiworker.Label()})
 		}
 	}
 	json.NewEncoder(resp).Encode(report)
@@ -108,8 +122,10 @@ func (w *APIWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	myRouter.HandleFunc("/status", w.status)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", viper.GetInt("rest.apiport")),
-		Handler: myRouter,
+		Handler:      myRouter,
+		Addr:         fmt.Sprintf(":%d", viper.GetInt("rest.apiport")),
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
 	}
 
 	go func() {
