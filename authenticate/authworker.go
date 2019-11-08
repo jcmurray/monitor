@@ -9,6 +9,7 @@ import (
 
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/protocolapp"
+	"github.com/jcmurray/monitor/sequence"
 	"github.com/jcmurray/monitor/worker"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
@@ -77,25 +78,29 @@ waitloop:
 				w.log.Errorf("Unmarshal error: %s", err)
 				continue
 			}
-			if resp.Success && resp.Seq == 1 && resp.StreamID == 0 {
+			if resp.Success && sequence.IsCommandSeqExpected(w.id, resp.Seq, protocolapp.LogonRequest) && resp.StreamID == 0 {
+				sequence.RemoveEntry(w.id, resp.Seq)
 				w.refreshToken = resp.RefreshToken
 				w.setLoggedOn()
 				continue
 			}
-			if !resp.Success && resp.Seq == 1 && resp.Error == "invalid password" {
+			if !resp.Success && sequence.IsCommandSeqExpected(w.id, resp.Seq, protocolapp.LogonRequest) && resp.Error == "invalid password" {
 				w.log.Error("Logon failure - invalid password - requesting application termination")
+				sequence.RemoveEntry(w.id, resp.Seq)
 				*term <- 1
 				break waitloop
 			}
 
-			if !resp.Success && resp.Seq == 1 && resp.Error == "invalid username" {
+			if !resp.Success && sequence.IsCommandSeqExpected(w.id, resp.Seq, protocolapp.LogonRequest) && resp.Error == "invalid username" {
 				w.log.Error("Logon failure - invalid username - requesting application termination")
+				sequence.RemoveEntry(w.id, resp.Seq)
 				*term <- 1
 				break waitloop
 			}
 
-			if !resp.Success && resp.Seq == 1 && resp.Error == "not authorized" {
+			if !resp.Success && sequence.IsCommandSeqExpected(w.id, resp.Seq, protocolapp.LogonRequest) && resp.Error == "not authorized" {
 				w.log.Error("Logon failure - invalid authorisation token - requesting application termination")
+				sequence.RemoveEntry(w.id, resp.Seq)
 				*term <- 1
 				break waitloop
 			}
@@ -185,6 +190,7 @@ func (w *AuthWorker) doLogon() error {
 	logon.Username = viper.GetString("logon.username")
 	logon.Password = viper.GetString("logon.password")
 	logon.ListenOnly = viper.GetBool("logon.listen_only")
+	logon.Seq = sequence.GetNextSequenceNumber(w.id, logon.Command)
 
 	buff, err := json.Marshal(logon)
 	if err != nil {

@@ -78,6 +78,14 @@ waitloop:
 				continue
 			}
 
+			if w.errorOnChannel(c) {
+				w.log.Errorf("Error - Exiting - User: '%s' on Channel: '%s', error type '%s', %s",
+					viper.GetString("logon.username"), c.Channel, c.ErrorType, c.Error)
+				w.log.Tracef("Requesting application termination")
+				*term <- 1
+				continue
+			}
+
 			var statusMessage bytes.Buffer
 			statusMessage.WriteString("Channel '%s' %s, %d users ")
 			if c.ImagesSupported {
@@ -182,4 +190,17 @@ func (w *StatusWorker) closedChannel(c *protocolapp.OnChannelStatus) bool {
 		return true
 	}
 	return false
+}
+
+func (w *StatusWorker) errorOnChannel(c *protocolapp.OnChannelStatus) bool {
+	/*
+	   Check for error on channel
+	   ==========================
+
+	   If so then bail -- unrecoverable error
+
+	   c.Error != ""
+	   c.ErrorType != ""
+	*/
+	return (c.ErrorType != "") || (c.Error != "")
 }
