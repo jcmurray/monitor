@@ -19,3 +19,36 @@ func NewOnTextMessage() *OnTextMessage {
 		Command: OnTextMessageEvent,
 	}
 }
+
+// SendTextMessage message for network worker
+type SendTextMessage struct {
+	Command string `json:"command,omitempty"`
+	Seq     int    `json:"seq,omitempty"`
+	Text    string `json:"text,omitempty"`
+	For     string `json:"for,omitempty"`
+}
+
+// NewSendTextMessage returns a new Zello SendTextMessage structure
+func NewSendTextMessage() *SendTextMessage {
+	return &SendTextMessage{
+		Command: TextMessageSendRequest,
+	}
+}
+
+// TextMessageRequest comes via a POST request
+type TextMessageRequest struct {
+	For     string `json:"for,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+// TextMessageResponse to POST request
+type TextMessageResponse struct {
+	Error   string `json:"error,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+// InternalTextMessageRequest comes via a POST request
+type InternalTextMessageRequest struct {
+	For     string `json:"for,omitempty"`
+	Message string `json:"message,omitempty"`
+}
