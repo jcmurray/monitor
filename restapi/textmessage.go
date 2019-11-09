@@ -33,9 +33,9 @@ func (w *APIWorker) textMessage(resp http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	message, _ := json.Marshal(map[string]string{
-		"for":     tmr.For,
-		"message": tmr.Message,
+	message, _ := json.Marshal(protocolapp.InternalTextMessageRequest{
+		For:     tmr.For,
+		Message: tmr.Message,
 	})
 
 	tmw := w.findTextWorker()

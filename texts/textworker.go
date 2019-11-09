@@ -47,6 +47,7 @@ func (w *TextMessageWorker) Run(wg *sync.WaitGroup, term *chan int) {
 
 	nw := w.findNetWorker()
 	textMessageChannel := nw.Subscribe(w.id, protocolapp.OnTextMessageEvent, w.label).Channel
+	responseChannel := nw.Subscribe(w.id, protocolapp.OnResponseEvent, w.label).Channel
 	errorChannel := nw.Subscribe(w.id, protocolapp.OnErrorEvent, w.label).Channel
 
 	w.textMessageChannel = make(chan []byte, 2)
@@ -72,19 +73,21 @@ waitloop:
 		case sendTextMessage, more := <-w.textMessageChannel:
 			if more {
 				w.log.Debugf("Received Text Message Request %v", sendTextMessage)
-				var message map[string]interface{}
+
+				message := protocolapp.InternalTextMessageRequest{}
 				err := json.Unmarshal(sendTextMessage, &message)
 				if err != nil {
 					w.log.Errorf("Error parsing text message %s", err)
 					continue
 				}
-				w.log.Debugf("For %s, Message: %s", message["for"], message["message"])
+				w.log.Debugf("For %s, Message: %s", message.For, message.Message)
 
-				err = w.doSendTextMessage(message["for"].(string), message["message"].(string))
+				err = w.doSendTextMessage(message.For, message.Message)
 				if err != nil {
 					w.log.Errorf("Error on sending text message to network %s", err)
 					continue
 				}
+				w.log.Infof("Text message for '%s' sent: '%s'", message.For, message.Message)
 			} else {
 				w.log.Info("Channel closed")
 				break waitloop
@@ -104,11 +107,32 @@ waitloop:
 				w.log.Info("Channel closed")
 				break waitloop
 			}
+
+		case response := <-responseChannel:
+			resp := protocolapp.NewResponse()
+			err := json.Unmarshal(response.([]byte), resp)
+			if err != nil {
+				w.log.Errorf("Unmarshal error: %s", err)
+				continue
+			}
+			if resp.Success && sequence.IsCommandSeqExpected(w.id, resp.Seq, protocolapp.TextMessageSendRequest) {
+				sequence.RemoveEntry(w.id, resp.Seq)
+				w.log.Tracef("Response: %s", string(response.([]byte)))
+				w.log.Infof("Successful response to Text Message")
+				continue
+			}
+			if !resp.Success && sequence.IsCommandSeqExpected(w.id, resp.Seq, protocolapp.TextMessageSendRequest) {
+				sequence.RemoveEntry(w.id, resp.Seq)
+				w.log.Tracef("Response: %s", string(response.([]byte)))
+				w.log.Infof("Error response to Text Message: %s", resp.Error)
+				continue
+			}
 		}
 	}
 
-	nw.UnSubscribe(w.id, protocolapp.OnTextMessageEvent)
 	nw.UnSubscribe(w.id, protocolapp.OnErrorEvent)
+	nw.UnSubscribe(w.id, protocolapp.OnResponseEvent)
+	nw.UnSubscribe(w.id, protocolapp.OnTextMessageEvent)
 
 	w.log.Debug("Finished")
 }

@@ -46,3 +46,9 @@ type TextMessageResponse struct {
 	Error   string `json:"error,omitempty"`
 	Message string `json:"message,omitempty"`
 }
+
+// InternalTextMessageRequest comes via a POST request
+type InternalTextMessageRequest struct {
+	For     string `json:"for,omitempty"`
+	Message string `json:"message,omitempty"`
+}
