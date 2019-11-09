@@ -3,7 +3,9 @@
 
 package worker
 
-import "sync"
+import (
+	"sync"
+)
 
 // Commands to a worker
 const (
