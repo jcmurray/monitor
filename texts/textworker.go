@@ -193,3 +193,8 @@ func (w *TextMessageWorker) doSendTextMessage(forUser string, text string) error
 	nw.Data([]byte(string(buff)))
 	return nil
 }
+
+// Subscriptions return a copy of current scubscriptions
+func (w *TextMessageWorker) Subscriptions() []*worker.Subscription {
+	return make([]*worker.Subscription, 0)
+}

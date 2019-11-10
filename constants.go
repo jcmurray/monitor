@@ -21,6 +21,8 @@ const (
 	DefaultEnableAudio       = true
 	DefaultRestServerEnabled = false
 	DefaultRestServerPort    = 9999
+	DefaultRPCServerEnabled = false
+	DefaultRPCServerPort    = 9998
 )
 
 // LogLevelStrings for config file

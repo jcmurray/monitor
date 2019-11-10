@@ -142,3 +142,8 @@ func (w *LocationWorker) Label() string {
 func (w *LocationWorker) ID() int {
 	return w.id
 }
+
+// Subscriptions return a copy of current scubscriptions
+func (w *LocationWorker) Subscriptions() []*worker.Subscription {
+	return make([]*worker.Subscription, 0)
+}

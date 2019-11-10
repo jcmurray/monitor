@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package clientapi;
+
+import "google/protobuf/empty.proto";
+
+service ClientService {
+  rpc SendTextMessage (TextMessage) returns (TextMessageResponse);
+  rpc Status (google.protobuf.Empty) returns (StatusResponse);
+}
+
+message TextMessage {
+  string for = 1;
+  string message = 2;
+}
+
+message TextMessageResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message StatusResponse {
+  repeated WorkerDetails workers = 1;
+}
+
+message WorkerDetails {
+  int32 id = 1;
+  string name = 2;
+  repeated Subscription worker_subscription = 3;
+}
+
+message Subscription {
+  int32 id = 1;
+	string type = 2;
+	string label = 3;
+}

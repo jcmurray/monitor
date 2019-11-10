@@ -209,3 +209,8 @@ func (w *ImageWorker) Label() string {
 func (w *ImageWorker) ID() int {
 	return w.id
 }
+
+// Subscriptions return a copy of current scubscriptions
+func (w *ImageWorker) Subscriptions() []*worker.Subscription {
+	return make([]*worker.Subscription, 0)
+}
