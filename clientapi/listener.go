@@ -5,6 +5,7 @@ package clientapi
 
 import (
 	context "context"
+	"encoding/json"
 	fmt "fmt"
 	"net"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"github.com/jcmurray/monitor/images"
 	"github.com/jcmurray/monitor/locations"
 	"github.com/jcmurray/monitor/network"
+	"github.com/jcmurray/monitor/protocolapp"
 	"github.com/jcmurray/monitor/streams"
 	"github.com/jcmurray/monitor/texts"
 	"github.com/jcmurray/monitor/worker"
@@ -84,7 +86,7 @@ waitloop:
 					_, cancel := context.WithTimeout(context.Background(), time.Second*10)
 					defer cancel()
 					grpcServer.GracefulStop()
-					log.Println("Shutting down grpc messaging server.")
+					w.log.Infof("Shutting down grpc messaging server.")
 					break waitloop
 				default:
 					continue
@@ -100,6 +102,18 @@ waitloop:
 
 // SendTextMessage rpc entry point
 func (w *RPCWorker) SendTextMessage(ctx context.Context, t *TextMessage) (*TextMessageResponse, error) {
+	w.log.Infof("in SendTextMessage")
+	w.log.Infof("For=%s", t.For)
+	w.log.Infof("Message=%s", t.Message)
+
+	message, _ := json.Marshal(protocolapp.InternalTextMessageRequest{
+		For:     t.For,
+		Message: t.Message,
+	})
+
+	tmw := w.findTextWorker()
+	tmw.TextMessageEvent(message)
+
 	return &TextMessageResponse{
 		Success: true,
 		Message: fmt.Sprintf("Text messaage for '%s' received: %s", t.For, t.Message),
@@ -270,4 +284,15 @@ func (w *RPCWorker) ID() int {
 // Subscriptions return a copy of current scubscriptions
 func (w *RPCWorker) Subscriptions() []*worker.Subscription {
 	return make([]*worker.Subscription, 0)
+}
+
+// findNetWorker find Net worker
+func (w *RPCWorker) findTextWorker() *texts.TextMessageWorker {
+	for i := range *w.workers {
+		switch (*w.workers)[i].(type) {
+		case *texts.TextMessageWorker:
+			return (*w.workers)[i].(*texts.TextMessageWorker)
+		}
+	}
+	return nil
 }
