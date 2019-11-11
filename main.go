@@ -13,7 +13,7 @@ import (
 	"github.com/jcmurray/monitor/audiodecoder"
 	"github.com/jcmurray/monitor/authenticate"
 	"github.com/jcmurray/monitor/channelstatus"
-	"github.com/jcmurray/monitor/clientapi"
+	"github.com/jcmurray/monitor/clientrpc"
 	"github.com/jcmurray/monitor/images"
 	"github.com/jcmurray/monitor/locations"
 	"github.com/jcmurray/monitor/network"
@@ -178,9 +178,9 @@ func main() {
 		go restapiworker.Run(&waitGroup, &terminateRequest)
 	}
 
-	var rpcapiworker *clientapi.RPCWorker
+	var rpcapiworker *clientrpc.RPCWorker
 	if viper.GetBool("rpc.apienabled") {
-		rpcapiworker = clientapi.NewRPCWorker(&workers, NewID(workers), "RPC API Worker")
+		rpcapiworker = clientrpc.NewRPCWorker(&workers, NewID(workers), "RPC API Worker")
 		workers = append(workers, rpcapiworker)
 		waitGroup.Add(1)
 		go rpcapiworker.Run(&waitGroup, &terminateRequest)

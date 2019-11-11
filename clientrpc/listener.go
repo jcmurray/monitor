@@ -1,7 +1,7 @@
 // cSpell.language:en-GB
 // cSpell:disable
 
-package clientapi
+package clientrpc
 
 import (
 	context "context"
@@ -15,6 +15,7 @@ import (
 	"github.com/jcmurray/monitor/audiodecoder"
 	"github.com/jcmurray/monitor/authenticate"
 	"github.com/jcmurray/monitor/channelstatus"
+	"github.com/jcmurray/monitor/clientapi"
 	"github.com/jcmurray/monitor/images"
 	"github.com/jcmurray/monitor/locations"
 	"github.com/jcmurray/monitor/network"
@@ -65,7 +66,7 @@ func (w *RPCWorker) Run(wg *sync.WaitGroup, term *chan int) {
 	}
 
 	grpcServer := grpc.NewServer(opts...)
-	RegisterClientServiceServer(grpcServer, w)
+	clientapi.RegisterClientServiceServer(grpcServer, w)
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
@@ -101,7 +102,7 @@ waitloop:
 }
 
 // SendTextMessage rpc entry point
-func (w *RPCWorker) SendTextMessage(ctx context.Context, t *TextMessage) (*TextMessageResponse, error) {
+func (w *RPCWorker) SendTextMessage(ctx context.Context, t *clientapi.TextMessage) (*clientapi.TextMessageResponse, error) {
 	w.log.Infof("in SendTextMessage")
 	w.log.Infof("For=%s", t.For)
 	w.log.Infof("Message=%s", t.Message)
@@ -114,149 +115,149 @@ func (w *RPCWorker) SendTextMessage(ctx context.Context, t *TextMessage) (*TextM
 	tmw := w.findTextWorker()
 	tmw.TextMessageEvent(message)
 
-	return &TextMessageResponse{
+	return &clientapi.TextMessageResponse{
 		Success: true,
 		Message: fmt.Sprintf("Text messaage for '%s' received: %s", t.For, t.Message),
 	}, nil
 }
 
 // Status rpc entry point
-func (w *RPCWorker) Status(ctx context.Context, t *empty.Empty) (*StatusResponse, error) {
+func (w *RPCWorker) Status(ctx context.Context, t *empty.Empty) (*clientapi.StatusResponse, error) {
 
-	var workers []*WorkerDetails
-	var subs []*Subscription
+	var workers []*clientapi.WorkerDetails
+	var subs []*clientapi.Subscription
 
 	for i := range *w.workers {
 		switch t := (*w.workers)[i].(type) {
 		case *network.Networker:
 			for _, s := range t.Subscriptions() {
-				subscription := &Subscription{
+				subscription := &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
 				}
 				subs = append(subs, subscription)
 			}
-			workers = append(workers, &WorkerDetails{
+			workers = append(workers, &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
 			})
 		case *authenticate.AuthWorker:
 			for _, s := range t.Subscriptions() {
-				subscription := &Subscription{
+				subscription := &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
 				}
 				subs = append(subs, subscription)
 			}
-			workers = append(workers, &WorkerDetails{
+			workers = append(workers, &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
 			})
 		case *channelstatus.StatusWorker:
 			for _, s := range t.Subscriptions() {
-				subscription := &Subscription{
+				subscription := &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
 				}
 				subs = append(subs, subscription)
 			}
-			workers = append(workers, &WorkerDetails{
+			workers = append(workers, &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
 			})
 		case *streams.StreamWorker:
 			for _, s := range t.Subscriptions() {
-				subscription := &Subscription{
+				subscription := &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
 				}
 				subs = append(subs, subscription)
 			}
-			workers = append(workers, &WorkerDetails{
+			workers = append(workers, &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
 			})
 		case *images.ImageWorker:
 			for _, s := range t.Subscriptions() {
-				subscription := &Subscription{
+				subscription := &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
 				}
 				subs = append(subs, subscription)
 			}
-			workers = append(workers, &WorkerDetails{
+			workers = append(workers, &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
 			})
 		case *locations.LocationWorker:
 			for _, s := range t.Subscriptions() {
-				subscription := &Subscription{
+				subscription := &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
 				}
 				subs = append(subs, subscription)
 			}
-			workers = append(workers, &WorkerDetails{
+			workers = append(workers, &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
 			})
 		case *texts.TextMessageWorker:
 			for _, s := range t.Subscriptions() {
-				subscription := &Subscription{
+				subscription := &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
 				}
 				subs = append(subs, subscription)
 			}
-			workers = append(workers, &WorkerDetails{
+			workers = append(workers, &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
 			})
 		case *audiodecoder.AudioWorker:
 			for _, s := range t.Subscriptions() {
-				subscription := &Subscription{
+				subscription := &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
 				}
 				subs = append(subs, subscription)
 			}
-			workers = append(workers, &WorkerDetails{
+			workers = append(workers, &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
 			})
 		case *RPCWorker:
 			for _, s := range t.Subscriptions() {
-				subscription := &Subscription{
+				subscription := &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
 				}
 				subs = append(subs, subscription)
 			}
-			workers = append(workers, &WorkerDetails{
+			workers = append(workers, &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
 			})
 		}
 	}
-	return &StatusResponse{
+	return &clientapi.StatusResponse{
 		Workers: workers,
 	}, nil
 }
