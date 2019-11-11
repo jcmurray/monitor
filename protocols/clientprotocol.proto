@@ -6,7 +6,7 @@ import "google/protobuf/empty.proto";
 
 service ClientService {
   rpc SendTextMessage (TextMessage) returns (TextMessageResponse);
-  rpc Status (google.protobuf.Empty) returns (StatusResponse);
+  rpc Status (google.protobuf.Empty) returns (stream WorkerDetails);
 }
 
 message TextMessage {
@@ -17,10 +17,6 @@ message TextMessage {
 message TextMessageResponse {
   bool success = 1;
   string message = 2;
-}
-
-message StatusResponse {
-  repeated WorkerDetails workers = 1;
 }
 
 message WorkerDetails {

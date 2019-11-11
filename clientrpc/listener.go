@@ -122,144 +122,152 @@ func (w *RPCWorker) SendTextMessage(ctx context.Context, t *clientapi.TextMessag
 }
 
 // Status rpc entry point
-func (w *RPCWorker) Status(ctx context.Context, t *empty.Empty) (*clientapi.StatusResponse, error) {
+func (w *RPCWorker) Status(empty *empty.Empty, stream clientapi.ClientService_StatusServer) error {
 
-	var workers []*clientapi.WorkerDetails
-	var subs []*clientapi.Subscription
+	var detail *clientapi.WorkerDetails
 
 	for i := range *w.workers {
 		switch t := (*w.workers)[i].(type) {
 		case *network.Networker:
+			var subs []*clientapi.Subscription
 			for _, s := range t.Subscriptions() {
-				subscription := &clientapi.Subscription{
+				subs = append(subs, &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
-				}
-				subs = append(subs, subscription)
+				})
 			}
-			workers = append(workers, &clientapi.WorkerDetails{
+			detail = &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
-			})
+			}
+
 		case *authenticate.AuthWorker:
+			var subs []*clientapi.Subscription
 			for _, s := range t.Subscriptions() {
-				subscription := &clientapi.Subscription{
+				subs = append(subs, &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
-				}
-				subs = append(subs, subscription)
+				})
 			}
-			workers = append(workers, &clientapi.WorkerDetails{
+			detail = &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
-			})
+			}
+
 		case *channelstatus.StatusWorker:
+			var subs []*clientapi.Subscription
 			for _, s := range t.Subscriptions() {
-				subscription := &clientapi.Subscription{
+				subs = append(subs, &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
-				}
-				subs = append(subs, subscription)
+				})
 			}
-			workers = append(workers, &clientapi.WorkerDetails{
+			detail = &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
-			})
+			}
+
 		case *streams.StreamWorker:
+			var subs []*clientapi.Subscription
 			for _, s := range t.Subscriptions() {
-				subscription := &clientapi.Subscription{
+				subs = append(subs, &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
-				}
-				subs = append(subs, subscription)
+				})
 			}
-			workers = append(workers, &clientapi.WorkerDetails{
+			detail = &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
-			})
+			}
+
 		case *images.ImageWorker:
+			var subs []*clientapi.Subscription
 			for _, s := range t.Subscriptions() {
-				subscription := &clientapi.Subscription{
+				subs = append(subs, &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
-				}
-				subs = append(subs, subscription)
+				})
 			}
-			workers = append(workers, &clientapi.WorkerDetails{
+			detail = &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
-			})
+			}
+
 		case *locations.LocationWorker:
+			var subs []*clientapi.Subscription
 			for _, s := range t.Subscriptions() {
-				subscription := &clientapi.Subscription{
+				subs = append(subs, &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
-				}
-				subs = append(subs, subscription)
+				})
 			}
-			workers = append(workers, &clientapi.WorkerDetails{
+			detail = &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
-			})
+			}
+
 		case *texts.TextMessageWorker:
+			var subs []*clientapi.Subscription
 			for _, s := range t.Subscriptions() {
-				subscription := &clientapi.Subscription{
+				subs = append(subs, &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
-				}
-				subs = append(subs, subscription)
+				})
 			}
-			workers = append(workers, &clientapi.WorkerDetails{
+			detail = &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
-			})
+			}
+
 		case *audiodecoder.AudioWorker:
+			var subs []*clientapi.Subscription
 			for _, s := range t.Subscriptions() {
-				subscription := &clientapi.Subscription{
+				subs = append(subs, &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
-				}
-				subs = append(subs, subscription)
+				})
 			}
-			workers = append(workers, &clientapi.WorkerDetails{
+			detail = &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
-			})
+			}
+
 		case *RPCWorker:
+			var subs []*clientapi.Subscription
 			for _, s := range t.Subscriptions() {
-				subscription := &clientapi.Subscription{
+				subs = append(subs, &clientapi.Subscription{
 					Id:    int32(s.ID),
 					Type:  s.Type,
 					Label: s.Label,
-				}
-				subs = append(subs, subscription)
+				})
 			}
-			workers = append(workers, &clientapi.WorkerDetails{
+			detail = &clientapi.WorkerDetails{
 				Id:                 int32(t.ID()),
 				Name:               t.Label(),
 				WorkerSubscription: subs,
-			})
+			}
+		}
+		if err := stream.Send(detail); err != nil {
+			return err
 		}
 	}
-	return &clientapi.StatusResponse{
-		Workers: workers,
-	}, nil
+	return nil
 }
 
 // Command sent to this worker
