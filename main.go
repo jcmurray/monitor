@@ -47,6 +47,7 @@ func main() {
 		terminateRequest chan int
 		interrupt        chan os.Signal
 		waitGroup        sync.WaitGroup
+		once             sync.Once
 	)
 	done = make(chan struct{})
 	terminateRequest = make(chan int, 10)
@@ -188,15 +189,13 @@ func main() {
 
 waitLoop:
 	for {
-		terminateRequestReceived := false
 		select {
 		case <-terminateRequest:
 			mlog.Debug("Received 'terminateRequest' event")
-			if !terminateRequestReceived {
-				// Don't double close() channel
+			once.Do(func() {
 				mlog.Debug("Closing 'done' channel")
 				close(done)
-			}
+			})
 
 		case <-done:
 			mlog.Debug("Received 'done' event")
@@ -241,7 +240,7 @@ waitLoop:
 			case <-done:
 			case <-time.After(time.Second):
 				mlog.Debug("Grace period timer expired -- exiting")
-				close(done)
+				terminateRequest <- 1
 			}
 		}
 	}
