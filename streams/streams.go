@@ -12,6 +12,7 @@ import (
 	"github.com/jcmurray/monitor/audiodecoder"
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/protocolapp"
+	"github.com/jcmurray/monitor/errorcodes"
 	"github.com/jcmurray/monitor/worker"
 	log "github.com/sirupsen/logrus"
 )
@@ -72,7 +73,7 @@ waitloop:
 		w.log.Tracef("Entering Select")
 		select {
 		case errorMessage := <-errorChannel:
-			w.log.Debugf("Response: %s", string(errorMessage.([]byte)))
+			w.log.Debugf("Response: %s", errorcodes.Description(string(errorMessage.([]byte))))
 
 		case streamStart := <-streamStartChannel:
 

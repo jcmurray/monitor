@@ -9,6 +9,7 @@ import (
 
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/protocolapp"
+	"github.com/jcmurray/monitor/errorcodes"
 	"github.com/jcmurray/monitor/sequence"
 	"github.com/jcmurray/monitor/worker"
 	"github.com/juju/errors"
@@ -106,7 +107,7 @@ waitloop:
 			}
 
 		case errorMessage := <-errorChannel:
-			w.log.Debugf("Error: %s", string(errorMessage.([]byte)))
+			w.log.Debugf("Error: %s", errorcodes.Description(string(errorMessage.([]byte))))
 
 		case logonCommand, more := <-w.command:
 			if more {

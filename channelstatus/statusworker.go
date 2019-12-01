@@ -11,6 +11,7 @@ import (
 
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/protocolapp"
+	"github.com/jcmurray/monitor/errorcodes"
 	"github.com/jcmurray/monitor/worker"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -53,7 +54,7 @@ waitloop:
 		w.log.Debugf("Entering Select")
 		select {
 		case errorMessage := <-errorChannel:
-			w.log.Debugf("Response: %s", string(errorMessage.([]byte)))
+			w.log.Debugf("Response: %s", errorcodes.Description(string(errorMessage.([]byte))))
 
 		case channelStatus := <-statusChannel:
 
