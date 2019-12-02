@@ -47,7 +47,7 @@ func (w *APIWorker) textMessage(resp http.ResponseWriter, req *http.Request) {
 	})
 }
 
-// FindNetWorker find Net worker
+// findNetWorker find Net worker
 func (w *APIWorker) findTextWorker() *texts.TextMessageWorker {
 	for i := range *w.workers {
 		switch (*w.workers)[i].(type) {

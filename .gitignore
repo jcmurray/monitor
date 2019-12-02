@@ -10,9 +10,12 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-monitor
 *.csv
 .vscode
+
+monitor
+clientapi/clientprotocol.pb.go
+clientapi/clientprotocol.swagger.json
 
 config-NR.yaml
 config-MFPC.yaml

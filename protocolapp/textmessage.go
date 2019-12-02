@@ -47,7 +47,7 @@ type TextMessageResponse struct {
 	Message string `json:"message,omitempty"`
 }
 
-// InternalTextMessageRequest comes via a POST request
+// InternalTextMessageRequest inter-goroutine message
 type InternalTextMessageRequest struct {
 	For     string `json:"for,omitempty"`
 	Message string `json:"message,omitempty"`

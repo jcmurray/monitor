@@ -215,3 +215,8 @@ func (w *AuthWorker) Label() string {
 func (w *AuthWorker) ID() int {
 	return w.id
 }
+
+// Subscriptions return a copy of current scubscriptions
+func (w *AuthWorker) Subscriptions() []*worker.Subscription {
+	return make([]*worker.Subscription, 0)
+}

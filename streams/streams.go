@@ -196,3 +196,8 @@ func (w *StreamWorker) Label() string {
 func (w *StreamWorker) ID() int {
 	return w.id
 }
+
+// Subscriptions return a copy of current scubscriptions
+func (w *StreamWorker) Subscriptions() []*worker.Subscription {
+	return make([]*worker.Subscription, 0)
+}

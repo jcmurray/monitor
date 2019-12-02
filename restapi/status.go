@@ -33,53 +33,52 @@ func (w *APIWorker) status(resp http.ResponseWriter, req *http.Request) {
 	report := workerReport{}
 
 	for i := range *w.workers {
-		switch (*w.workers)[i].(type) {
+		switch t := (*w.workers)[i].(type) {
 		case *network.Networker:
-			networker := (*w.workers)[i].(*network.Networker)
 			report = append(report, workerDetails{
-				ID:            networker.ID(),
-				Name:          networker.Label(),
-				Subscriptions: networker.Subscriptions()})
+				ID:            t.ID(),
+				Name:          t.Label(),
+				Subscriptions: t.Subscriptions()})
 		case *authenticate.AuthWorker:
-			authworker := (*w.workers)[i].(*authenticate.AuthWorker)
 			report = append(report, workerDetails{
-				ID:   authworker.ID(),
-				Name: authworker.Label()})
+				ID:            t.ID(),
+				Name:          t.Label(),
+				Subscriptions: t.Subscriptions()})
 		case *channelstatus.StatusWorker:
-			statusworker := (*w.workers)[i].(*channelstatus.StatusWorker)
 			report = append(report, workerDetails{
-				ID:   statusworker.ID(),
-				Name: statusworker.Label()})
+				ID:            t.ID(),
+				Name:          t.Label(),
+				Subscriptions: t.Subscriptions()})
 		case *streams.StreamWorker:
-			streamworker := (*w.workers)[i].(*streams.StreamWorker)
 			report = append(report, workerDetails{
-				ID:   streamworker.ID(),
-				Name: streamworker.Label()})
+				ID:            t.ID(),
+				Name:          t.Label(),
+				Subscriptions: t.Subscriptions()})
 		case *images.ImageWorker:
-			imageworker := (*w.workers)[i].(*images.ImageWorker)
 			report = append(report, workerDetails{
-				ID:   imageworker.ID(),
-				Name: imageworker.Label()})
+				ID:            t.ID(),
+				Name:          t.Label(),
+				Subscriptions: t.Subscriptions()})
 		case *locations.LocationWorker:
-			locationworker := (*w.workers)[i].(*locations.LocationWorker)
 			report = append(report, workerDetails{
-				ID:   locationworker.ID(),
-				Name: locationworker.Label()})
+				ID:            t.ID(),
+				Name:          t.Label(),
+				Subscriptions: t.Subscriptions()})
 		case *texts.TextMessageWorker:
-			textworker := (*w.workers)[i].(*texts.TextMessageWorker)
 			report = append(report, workerDetails{
-				ID:   textworker.ID(),
-				Name: textworker.Label()})
+				ID:            t.ID(),
+				Name:          t.Label(),
+				Subscriptions: t.Subscriptions()})
 		case *audiodecoder.AudioWorker:
-			audioworker := (*w.workers)[i].(*audiodecoder.AudioWorker)
 			report = append(report, workerDetails{
-				ID:   audioworker.ID(),
-				Name: audioworker.Label()})
+				ID:            t.ID(),
+				Name:          t.Label(),
+				Subscriptions: t.Subscriptions()})
 		case *APIWorker:
-			restapiworker := (*w.workers)[i].(*APIWorker)
 			report = append(report, workerDetails{
-				ID:   restapiworker.ID(),
-				Name: restapiworker.Label()})
+				ID:            t.ID(),
+				Name:          t.Label(),
+				Subscriptions: t.Subscriptions()})
 		}
 	}
 	resp.Header().Set("Content-Type", "application/json")
@@ -95,4 +94,9 @@ func (w *APIWorker) Label() string {
 // ID return label of worker
 func (w *APIWorker) ID() int {
 	return w.id
+}
+
+// Subscriptions return a copy of current scubscriptions
+func (w *APIWorker) Subscriptions() []*worker.Subscription {
+	return make([]*worker.Subscription, 0)
 }

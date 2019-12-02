@@ -178,3 +178,8 @@ func (w *AudioWorker) Label() string {
 func (w *AudioWorker) ID() int {
 	return w.id
 }
+
+// Subscriptions return a copy of current scubscriptions
+func (w *AudioWorker) Subscriptions() []*worker.Subscription {
+	return make([]*worker.Subscription, 0)
+}

@@ -13,6 +13,7 @@ import (
 	"github.com/jcmurray/monitor/audiodecoder"
 	"github.com/jcmurray/monitor/authenticate"
 	"github.com/jcmurray/monitor/channelstatus"
+	"github.com/jcmurray/monitor/clientrpc"
 	"github.com/jcmurray/monitor/images"
 	"github.com/jcmurray/monitor/locations"
 	"github.com/jcmurray/monitor/network"
@@ -46,6 +47,7 @@ func main() {
 		terminateRequest chan int
 		interrupt        chan os.Signal
 		waitGroup        sync.WaitGroup
+		once             sync.Once
 	)
 	done = make(chan struct{})
 	terminateRequest = make(chan int, 10)
@@ -83,6 +85,9 @@ func main() {
 
 	viper.SetDefault("rest.apienabled", DefaultRestServerEnabled)
 	viper.SetDefault("rest.apiport", DefaultRestServerPort)
+
+	viper.SetDefault("rpc.apienabled", DefaultRPCServerEnabled)
+	viper.SetDefault("rpc.apiport", DefaultRPCServerPort)
 
 	if err := viper.ReadInConfig(); err != nil {
 		mlog.Fatalf("Config file error: %s", err)
@@ -174,17 +179,23 @@ func main() {
 		go restapiworker.Run(&waitGroup, &terminateRequest)
 	}
 
+	var rpcapiworker *clientrpc.RPCWorker
+	if viper.GetBool("rpc.apienabled") {
+		rpcapiworker = clientrpc.NewRPCWorker(&workers, NewID(workers), "RPC API Worker")
+		workers = append(workers, rpcapiworker)
+		waitGroup.Add(1)
+		go rpcapiworker.Run(&waitGroup, &terminateRequest)
+	}
+
 waitLoop:
 	for {
-		terminateRequestReceived := false
 		select {
 		case <-terminateRequest:
 			mlog.Debug("Received 'terminateRequest' event")
-			if !terminateRequestReceived {
-				// Don't double close() channel
+			once.Do(func() {
 				mlog.Debug("Closing 'done' channel")
 				close(done)
-			}
+			})
 
 		case <-done:
 			mlog.Debug("Received 'done' event")
@@ -209,6 +220,10 @@ waitLoop:
 				restapiworker.Terminate()
 				mlog.Debug("Terminated restapiworker ")
 			}
+			if viper.GetBool("rpc.apienabled") {
+				rpcapiworker.Terminate()
+				mlog.Debug("Terminated rpcapiworker ")
+			}
 			break waitLoop
 
 		case <-timeLogger.C:
@@ -225,7 +240,7 @@ waitLoop:
 			case <-done:
 			case <-time.After(time.Second):
 				mlog.Debug("Grace period timer expired -- exiting")
-				close(done)
+				terminateRequest <- 1
 			}
 		}
 	}
