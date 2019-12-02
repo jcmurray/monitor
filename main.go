@@ -17,7 +17,6 @@ import (
 	"github.com/jcmurray/monitor/images"
 	"github.com/jcmurray/monitor/locations"
 	"github.com/jcmurray/monitor/network"
-	"github.com/jcmurray/monitor/restapi"
 	"github.com/jcmurray/monitor/streams"
 	"github.com/jcmurray/monitor/texts"
 	"github.com/jcmurray/monitor/worker"
@@ -82,9 +81,6 @@ func main() {
 	viper.SetDefault("audio.samplerate", DefaultSampleRate)
 	viper.SetDefault("audio.channels", DefaultChannels)
 	viper.SetDefault("audio.framesperpacket", DefaultFramesPerPacket)
-
-	viper.SetDefault("rest.apienabled", DefaultRestServerEnabled)
-	viper.SetDefault("rest.apiport", DefaultRestServerPort)
 
 	viper.SetDefault("rpc.apienabled", DefaultRPCServerEnabled)
 	viper.SetDefault("rpc.apiport", DefaultRPCServerPort)
@@ -171,14 +167,6 @@ func main() {
 	waitGroup.Add(1)
 	go audioworker.Run(&waitGroup, &terminateRequest)
 
-	var restapiworker *restapi.APIWorker
-	if viper.GetBool("rest.apienabled") {
-		restapiworker = restapi.NewAPIWorker(&workers, NewID(workers), "REST API Worker")
-		workers = append(workers, restapiworker)
-		waitGroup.Add(1)
-		go restapiworker.Run(&waitGroup, &terminateRequest)
-	}
-
 	var rpcapiworker *clientrpc.RPCWorker
 	if viper.GetBool("rpc.apienabled") {
 		rpcapiworker = clientrpc.NewRPCWorker(&workers, NewID(workers), "RPC API Worker")
@@ -216,10 +204,6 @@ waitLoop:
 			networker.Terminate()
 			mlog.Debug("Terminated networker")
 
-			if viper.GetBool("rest.apienabled") {
-				restapiworker.Terminate()
-				mlog.Debug("Terminated restapiworker ")
-			}
 			if viper.GetBool("rpc.apienabled") {
 				rpcapiworker.Terminate()
 				mlog.Debug("Terminated rpcapiworker ")
