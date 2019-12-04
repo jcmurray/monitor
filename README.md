@@ -23,16 +23,20 @@ Supports:
   - Receiving 'image data' messages -- raw images in JPEG format
   - Receiving 'on_text_messages'
   - Receiving 'on_location_messages'
-- It does **NOT** support the sending of the following messages. This is simple because the application is designed to listen to traffic on Zello channels and not to originate any voice or other traffic.
+- It does **NOT** support the sending of the following messages. This is simply because the application was originally designed to listen to traffic on Zello channels and not to originate any voice or other traffic.
   - Sending 'start_stream' messages
   - Sending 'stream data' messages
   - Sending 'stop_stream' messages
   - Sending 'send_image' messages
-  - Sending 'send_text_message' messages
   - Sending 'send_location' messages
-- It can optionally same image data received to files.
+- It **does** support sending of the following messages. In order to do this I added an API using [gRPC](https://grpc.io) so that clients could send these message types.
+  - Sending 'send_text_message' messages
+- It can optionally save image data received to files.
 - It supports playing of the received audio streams directly to the computer's speakers using the [PortAudio](http://www.portaudio.com) package.
 - It uses Golang Modules to identify prerequisite packages.
+- It supports a [gRPC](https://grpc.io) API to allow clients to:
+  - Request information about the status of the server.
+  - Send text messages on the open Zello channel.
 
 The application itself is written as a set of concurrent GoRoutines, one each for:
 
@@ -43,10 +47,13 @@ The application itself is written as a set of concurrent GoRoutines, one each fo
 - Managing receipt of Text Messages
 - Managing receipt of Location data
 - Managing the decoding of audio data and sending it to the sound card.
+- Managing the [gRPC](https://grpc.io) API.
 
 Configuration is via a YAML configuration file which is read and parsed using the Golang  `viper` package.
 
 ## Installation
+
+### PortAudio
 
 The application uses a Golang wrapper to talk to the [PortAudio](http://www.portaudio.com) libraries and you need to ensure the PortAudio package itself is correctly installed on your computer. PortAudio is used to play audio streams directly to the PCs sound card. There are binary and source distributions available on the PortAudio web site and some simple installations using a package manager for your specific platform:
 
@@ -64,6 +71,8 @@ sudo apt-get install portaudio19-dev
 
 I can't vouch for any other platforms.
 
+### Opus Codec
+
 Zello uses the OPUS Audio Codec to transmit audio packets over WebSockets. OPUS packets are highly compressed and ideal for VoIP applications. This application decodes the OPUS packets into a PCM stream, ( signed, 16-bit integers, mono at 16000 samples per second). It does this using a Golang wrapper but the underlying [OPUS](https://opus-codec.org) libraries that need to be installed on your computer. There are binary and source distributions available on the OPUS web site and some simple installations using a package manager for your specific platform.
 
 For example on MacOS, where I've developed and tested the application, it's available from **HomeBrew**:
@@ -80,6 +89,26 @@ sudo apt-get install pkg-config libopus-dev libopusfile-dev
 ```
 
 I can't vouch for any other platforms.
+
+### gRPC and Protocol Buffers
+
+An API is exposed using [gRPC](https://grpc.io) which allows clients written in a number f languages to interact with the server. You first need to install the [Google Protocol Buffers](https://developers.google.com/protocol-buffers/) compiler and library. You can find instructions for your favourite language [here](https://developers.google.com/protocol-buffers/). 
+
+For example on MacOS, where I've developed and tested the application, it's available from **HomeBrew**:
+
+```shell
+brew install protobuf
+```
+
+There are pre-built binaries available for other platforms and it can also be build from source in the standard **Autoconf** way. Check [here](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md) for details.
+
+Since this application is written in **Go** you need to install a **Go** specific plugin for **protobuf**. The easiest way is:
+
+```shell
+go get -u github.com/golang/protobuf/protoc-gen-go
+```
+
+### Installing and Building the application
 
 Once these prerequisites are installed you can install the application itself as:
 
@@ -211,7 +240,53 @@ audio: ## used to calculate the required size of the audio PCM buffer ( 1920 byt
   samplerate: 16000 ## Zello uses 16000/s Frame rate -- Recommend not to change!!! (default 16000)
   channels: 1 ## Zello uses a single channel (mono) -- Recommend not to change!!! (default 1)
   framesperpacket: 2 ## Zello uses 2 OPUS Frames per packet -- Recommend not to change!!! (default 2)
+rpc:
+  apienabled: false ## true/false - enable or disable the gRPC API ( default false )
+	apiport: 9998 ## Port the application will listen on for gRPC API **requests**
 
 ```
 
 If you're interested in using the What3Words location setting get a [What3Words API Key](https://developer.what3words.com/public-api) from their developer site.
+
+## gRPC Client Example
+
+The following is a simple **Go** client application that sends a text message over the gRPC API to the main application which then sends it out on the Zello channel it's connected to.
+
+```Go
+package main
+
+import (
+	"context"
+	"time"
+
+	clientapi "<< path of package where Protocol Buffer stubs have been built >>"
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+)
+
+
+func main() {
+  var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:9998", opts...)
+	if err != nil {
+		log.Info(err)
+		return
+	}
+	defer conn.Close()
+	c := clientapi.NewClientServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	t, err := c.SendTextMessage(ctx, &clientapi.TextMessage{
+		Message: "Hello World!",
+		For:     "",
+	})
+	if err != nil {
+		log.Infof("%#v", err)
+		return
+	}
+	log.Infof("Status %v", t.Success)
+	log.Infof("Message %s", t.Message)
+}
+```
