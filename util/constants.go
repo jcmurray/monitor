@@ -1,7 +1,7 @@
-package main
-
 // cSpell.language:en-GB
 // cSpell:disable
+
+package util
 
 // Version: Version string for the app
 const (
