@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package clientapi;
 
+option java_package = "com.example.monitor.clientapi";
+option java_outer_classname = "ClientProtocol";
+
 import "google/protobuf/empty.proto";
 
 service ClientService {

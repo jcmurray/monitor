@@ -16,6 +16,8 @@
 monitor
 clientapi/clientprotocol.pb.go
 clientapi/clientprotocol.swagger.json
+clientapijava/com
+clientapijava/clientprotocol.swagger.json
 
 config-NR.yaml
 config-MFPC.yaml
