@@ -248,7 +248,9 @@ rpc:
 
 If you're interested in using the What3Words location setting get a [What3Words API Key](https://developer.what3words.com/public-api) from their developer site.
 
-## gRPC Client Example
+## gRPC Client Examples
+
+### Go Example
 
 The following is a simple **Go** client application that sends a text message over the gRPC API to the main application which then sends it out on the Zello channel it's connected to.
 
@@ -289,4 +291,70 @@ func main() {
 	log.Infof("Status %v", t.Success)
 	log.Infof("Message %s", t.Message)
 }
+```
+
+### Java Example
+
+In the `examples` directory there is a simple **Java** client application that sends a text message over the gRPC API to the main application which then sends it out on the Zello channel it's connected to as well as demonstrating **blocking** and **async streaming** use of the **gRPC** API. It uses **Maven** to orchestrate the build process so you may need to install it from [here](https://maven.apache.org).
+
+Build it like this:
+
+```shell
+$ cd examples/javaclient/monitor-client-app
+$ mvn -DskipTests package
+...
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  17.623 s
+[INFO] Finished at: 2019-12-09T23:03:55Z
+[INFO] ------------------------------------------------------------------------
+$ 
+```
+
+Run it like this:
+
+```shell
+$ java -jar target/monitor-client-app-1.0-SNAPSHOT-jar-with-dependencies.jar
+2019-12-09 23:05:12 INFO  ClientApp:41 - Will try to send message: Hello World!, to:
+2019-12-09 23:05:13 INFO  ClientApp:52 - Response: true, message: Text messaage for '' received: Hello World!
+2019-12-09 23:05:13 INFO  ClientApp:56 - Querying status of server using Sync API
+2019-12-09 23:05:13 INFO  ClientApp:62 - Name: Network Worker, Id: 9890
+2019-12-09 23:05:13 INFO  ClientApp:62 - Name: Auth Worker, Id: 2635
+2019-12-09 23:05:13 INFO  ClientApp:62 - Name: Stream Worker, Id: 932
+2019-12-09 23:05:13 INFO  ClientApp:62 - Name: Status Worker, Id: 1438
+2019-12-09 23:05:13 INFO  ClientApp:62 - Name: Image Worker, Id: 6144
+2019-12-09 23:05:13 INFO  ClientApp:62 - Name: Text Message Worker, Id: 2810
+2019-12-09 23:05:13 INFO  ClientApp:62 - Name: Location Worker, Id: 1944
+2019-12-09 23:05:13 INFO  ClientApp:62 - Name: Audio Worker, Id: 7562
+2019-12-09 23:05:13 INFO  ClientApp:62 - Name: RPC API Worker, Id: 6021
+2019-12-09 23:05:13 INFO  ClientApp:70 - Querying status of server using Async API
+2019-12-09 23:05:13 INFO  ClientApp:77 - Name: Network Worker, Id: 9890
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 1944, Label: Location Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 1944, Label: Location Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 2810, Label: Text Message Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 2810, Label: Text Message Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 2810, Label: Text Message Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 1438, Label: Status Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 1438, Label: Status Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 6144, Label: Image Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 6144, Label: Image Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 6144, Label: Image Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 932, Label: Stream Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 932, Label: Stream Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 932, Label: Stream Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 932, Label: Stream Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 2635, Label: Auth Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 2635, Label: Auth Worker
+2019-12-09 23:05:13 INFO  ClientApp:80 - 	Id: 2635, Label: Auth Worker
+2019-12-09 23:05:13 INFO  ClientApp:77 - Name: Auth Worker, Id: 2635
+2019-12-09 23:05:13 INFO  ClientApp:77 - Name: Stream Worker, Id: 932
+2019-12-09 23:05:13 INFO  ClientApp:77 - Name: Status Worker, Id: 1438
+2019-12-09 23:05:13 INFO  ClientApp:77 - Name: Image Worker, Id: 6144
+2019-12-09 23:05:13 INFO  ClientApp:77 - Name: Text Message Worker, Id: 2810
+2019-12-09 23:05:13 INFO  ClientApp:77 - Name: Location Worker, Id: 1944
+2019-12-09 23:05:13 INFO  ClientApp:77 - Name: Audio Worker, Id: 7562
+2019-12-09 23:05:13 INFO  ClientApp:77 - Name: RPC API Worker, Id: 6021
+2019-12-09 23:05:13 INFO  ClientApp:92 - Completed
+$
 ```

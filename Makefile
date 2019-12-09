@@ -14,7 +14,6 @@ dep: ## Get the dependencies
 
 clientapi: ## generate the protocol stubs
 	${MAKE} -C clientapi
-	${MAKE} -C clientapijava
 
 monitor: clientapi
 	go build ./...
@@ -24,4 +23,3 @@ monitor: clientapi
 clean: ## clean all generated files
 	-rm monitor
 	${MAKE} -C clientapi clean
-	${MAKE} -C clientapijava clean

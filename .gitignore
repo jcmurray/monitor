@@ -13,11 +13,10 @@
 *.csv
 .vscode
 
-monitor
-clientapi/clientprotocol.pb.go
-clientapi/clientprotocol.swagger.json
-clientapijava/com
-clientapijava/clientprotocol.swagger.json
+/monitor
+/clientapi/clientprotocol.pb.go
+/clientapi/clientprotocol.swagger.json
+target
 
 config-NR.yaml
 config-MFPC.yaml

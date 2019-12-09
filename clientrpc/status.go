@@ -24,6 +24,8 @@ func (w *RPCWorker) Status(empty *empty.Empty, stream clientapi.ClientService_St
 
 	var detail *clientapi.WorkerDetails
 
+	w.log.Debug("in Status")
+
 	for i := range *w.workers {
 		switch t := (*w.workers)[i].(type) {
 		case *network.Networker:
@@ -161,6 +163,7 @@ func (w *RPCWorker) Status(empty *empty.Empty, stream clientapi.ClientService_St
 				WorkerSubscription: subs,
 			}
 		}
+		w.log.Debug("Sending stream Status to client")
 		if err := stream.Send(detail); err != nil {
 			return err
 		}
