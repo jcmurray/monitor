@@ -18,6 +18,9 @@
 /clientapi/clientprotocol.swagger.json
 target
 
+node_modules
+package-lock.json
+
 config-NR.yaml
 config-MFPC.yaml
 cons.yaml

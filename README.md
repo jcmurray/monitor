@@ -358,3 +358,63 @@ $ java -jar target/monitor-client-app-1.0-SNAPSHOT-jar-with-dependencies.jar
 2019-12-09 23:05:13 INFO  ClientApp:92 - Completed
 $
 ```
+### Nodejs Example
+
+In the `examples` directory there is a simple **Nodejs** client application that sends a text message over the gRPC API to the main application which then sends it out on the Zello channel it's connected to as well as demonstrating **async streaming** use of the **gRPC** API. It uses **Npm** to orchestrate the build process so you may need to install it as well as **Nodejs** using the instructions [here][(https://maven.apache.org](https://nodejs.org/en/)).
+
+Build it like this:
+
+```shell
+$ cd examples/nodeclient
+$ npm install
+audited 178 packages in 1.198s
+found 0 vulnerabilities
+$ 
+```
+
+Run it like this:
+
+```shell
+$ node ./monitor_client.js
+Response:  {
+  success: true,
+  message: "Text messaage for '' received: Hello World!"
+}
+data called:  {
+  worker_subscription: [
+    { id: 7932, type: 'on_error', label: 'Location Worker' },
+    { id: 7932, type: 'on_location', label: 'Location Worker' },
+    { id: 6728, type: 'on_error', label: 'Text Message Worker' },
+    { id: 6728, type: 'xxx_on_response', label: 'Text Message Worker' },
+    { id: 6728, type: 'on_text_message', label: 'Text Message Worker' },
+    { id: 9496, type: 'on_error', label: 'Status Worker' },
+    { id: 9496, type: 'on_channel_status', label: 'Status Worker' },
+    { id: 3396, type: 'xxx_on_image_data', label: 'Image Worker' },
+    { id: 3396, type: 'on_error', label: 'Image Worker' },
+    { id: 3396, type: 'on_image', label: 'Image Worker' },
+    { id: 5071, type: 'xxx_on_stream_data', label: 'Stream Worker' },
+    { id: 5071, type: 'on_error', label: 'Stream Worker' },
+    { id: 5071, type: 'on_stream_stop', label: 'Stream Worker' },
+    { id: 5071, type: 'on_stream_start', label: 'Stream Worker' },
+    { id: 2086, type: 'on_error', label: 'Auth Worker' },
+    { id: 2086, type: 'xxx_on_response', label: 'Auth Worker' },
+    { id: 2086, type: 'connection', label: 'Auth Worker' }
+  ],
+  id: 8245,
+  name: 'Network Worker'
+}
+data called:  { worker_subscription: [], id: 2086, name: 'Auth Worker' }
+data called:  { worker_subscription: [], id: 5071, name: 'Stream Worker' }
+data called:  { worker_subscription: [], id: 9496, name: 'Status Worker' }
+data called:  { worker_subscription: [], id: 3396, name: 'Image Worker' }
+data called:  { worker_subscription: [], id: 6728, name: 'Text Message Worker' }
+data called:  { worker_subscription: [], id: 7932, name: 'Location Worker' }
+data called:  { worker_subscription: [], id: 81, name: 'Audio Worker' }
+data called:  { worker_subscription: [], id: 212, name: 'RPC API Worker' }
+status received:  {
+  code: 0,
+  details: '',
+  metadata: Metadata { _internal_repr: {}, flags: 0 }
+}
+end received
+```
