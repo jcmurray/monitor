@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/jcmurray/monitor/errorcodes"
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/protocolapp"
 	"github.com/jcmurray/monitor/worker"
@@ -73,7 +74,7 @@ waitloop:
 		w.log.Debugf("Entering Select")
 		select {
 		case errorMessage := <-errorChannel:
-			w.log.Debugf("Response: %s", string(errorMessage.([]byte)))
+			w.log.Debugf("Response: %s", errorcodes.Description(string(errorMessage.([]byte))))
 
 		case imageMessage := <-imageChannel:
 
@@ -198,4 +199,19 @@ func (w *ImageWorker) saveImageFile(ai *ImageInfo, fileName string, data []byte)
 	if err != nil {
 		w.log.Errorf("Error writing image file for message ID %d, %v", ai.MessageID, err)
 	}
+}
+
+// Label return label of worker
+func (w *ImageWorker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *ImageWorker) ID() int {
+	return w.id
+}
+
+// Subscriptions return a copy of current scubscriptions
+func (w *ImageWorker) Subscriptions() []*worker.Subscription {
+	return make([]*worker.Subscription, 0)
 }

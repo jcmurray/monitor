@@ -1,24 +1,26 @@
-package main
-
 // cSpell.language:en-GB
 // cSpell:disable
 
+package util
+
 // Version: Version string for the app
 const (
-	ApplicationVersion     = "0.1.3"
-	DefaultHostname        = "zello.io"
-	DefaultPort            = 443
-	DefaultPath            = "/ws"
-	DefaultProtocol        = "wss"
-	DefaultListenOnly      = true
-	DefaulW3WAPIKey        = "DEADBEEF"
-	DefaultUseW3W          = false
-	DefaultImageLogging    = false
-	DefaultFrameRate       = 60
-	DefaultSampleRate      = 16000
-	DefaultChannels        = 1
-	DefaultFramesPerPacket = 2
-	DefaultEnableAudio     = true
+	ApplicationVersion      = "0.2.0"
+	DefaultHostname         = "zello.io"
+	DefaultPort             = 443
+	DefaultPath             = "/ws"
+	DefaultProtocol         = "wss"
+	DefaultListenOnly       = true
+	DefaulW3WAPIKey         = "DEADBEEF"
+	DefaultUseW3W           = false
+	DefaultImageLogging     = false
+	DefaultFrameRate        = 60
+	DefaultSampleRate       = 16000
+	DefaultChannels         = 1
+	DefaultFramesPerPacket  = 2
+	DefaultEnableAudio      = true
+	DefaultRPCServerEnabled = false
+	DefaultRPCServerPort    = 9998
 )
 
 // LogLevelStrings for config file

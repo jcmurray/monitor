@@ -1,7 +1,7 @@
 // cSpell.language:en-GB
 // cSpell:disable
 
-package main
+package util
 
 import (
 	"math/rand"
@@ -9,9 +9,6 @@ import (
 
 	"github.com/jcmurray/monitor/worker"
 )
-
-// cSpell.language:en-GB
-// cSpell:disable
 
 var (
 	myrand *rand.Rand
@@ -46,16 +43,3 @@ check:
 		return proposedID
 	}
 }
-
-//
-//// FindAuthWorker find Auth worker
-//func FindAuthWorker() interface{} {
-//	for i := range workers {
-//		switch workers[i].(type) {
-//		case *authenticate.AuthWorker:
-//			return workers[i]
-//		}
-//	}
-//	return nil
-//}
-//

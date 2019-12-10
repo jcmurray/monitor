@@ -13,11 +13,13 @@ import (
 	"github.com/jcmurray/monitor/audiodecoder"
 	"github.com/jcmurray/monitor/authenticate"
 	"github.com/jcmurray/monitor/channelstatus"
+	"github.com/jcmurray/monitor/clientrpc"
 	"github.com/jcmurray/monitor/images"
 	"github.com/jcmurray/monitor/locations"
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/streams"
 	"github.com/jcmurray/monitor/texts"
+	"github.com/jcmurray/monitor/util"
 	"github.com/jcmurray/monitor/worker"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -45,6 +47,7 @@ func main() {
 		terminateRequest chan int
 		interrupt        chan os.Signal
 		waitGroup        sync.WaitGroup
+		once             sync.Once
 	)
 	done = make(chan struct{})
 	terminateRequest = make(chan int, 10)
@@ -62,23 +65,26 @@ func main() {
 	viper.SetConfigName(config)
 	viper.AddConfigPath(".")
 
-	viper.SetDefault("loglevel", LogLevelStrings[LogLevelInfo])
+	viper.SetDefault("loglevel", util.LogLevelStrings[util.LogLevelInfo])
 	viper.BindPFlag("loglevel", pflag.Lookup("loglevel"))
 
-	viper.SetDefault("server.host", DefaultHostname)
-	viper.SetDefault("server.port", DefaultPort)
-	viper.SetDefault("log.listen_only", DefaultListenOnly)
+	viper.SetDefault("server.host", util.DefaultHostname)
+	viper.SetDefault("server.port", util.DefaultPort)
+	viper.SetDefault("log.listen_only", util.DefaultListenOnly)
 
-	viper.SetDefault("location.what3wordsapikey", DefaulW3WAPIKey)
-	viper.SetDefault("location.what3words", DefaultUseW3W)
+	viper.SetDefault("location.what3wordsapikey", util.DefaulW3WAPIKey)
+	viper.SetDefault("location.what3words", util.DefaultUseW3W)
 
-	viper.SetDefault("image.logging", DefaultImageLogging)
+	viper.SetDefault("image.logging", util.DefaultImageLogging)
 
-	viper.SetDefault("audio.enable", DefaultEnableAudio)
-	viper.SetDefault("audio.framerate", DefaultFrameRate)
-	viper.SetDefault("audio.samplerate", DefaultSampleRate)
-	viper.SetDefault("audio.channels", DefaultChannels)
-	viper.SetDefault("audio.framesperpacket", DefaultFramesPerPacket)
+	viper.SetDefault("audio.enable", util.DefaultEnableAudio)
+	viper.SetDefault("audio.framerate", util.DefaultFrameRate)
+	viper.SetDefault("audio.samplerate", util.DefaultSampleRate)
+	viper.SetDefault("audio.channels", util.DefaultChannels)
+	viper.SetDefault("audio.framesperpacket", util.DefaultFramesPerPacket)
+
+	viper.SetDefault("rpc.apienabled", util.DefaultRPCServerEnabled)
+	viper.SetDefault("rpc.apiport", util.DefaultRPCServerPort)
 
 	if err := viper.ReadInConfig(); err != nil {
 		mlog.Fatalf("Config file error: %s", err)
@@ -86,24 +92,24 @@ func main() {
 
 	configLogLevel := viper.GetString("loglevel")
 	foundLogLevel := false
-	for i := range LogLevelStrings {
-		if strings.EqualFold(LogLevelStrings[i], configLogLevel) {
-			mlog.Infof("Logging level being set to %s", LogLevelStrings[i])
+	for i := range util.LogLevelStrings {
+		if strings.EqualFold(util.LogLevelStrings[i], configLogLevel) {
+			mlog.Infof("Logging level being set to %s", util.LogLevelStrings[i])
 			mlog.Info("")
 			switch i {
-			case LogLevelTrace:
+			case util.LogLevelTrace:
 				log.SetLevel(log.TraceLevel)
-			case LogLevelDebug:
+			case util.LogLevelDebug:
 				log.SetLevel(log.DebugLevel)
-			case LogLevelInfo:
+			case util.LogLevelInfo:
 				log.SetLevel(log.InfoLevel)
-			case LogLevelWarn:
+			case util.LogLevelWarn:
 				log.SetLevel(log.WarnLevel)
-			case LogLevelError:
+			case util.LogLevelError:
 				log.SetLevel(log.ErrorLevel)
-			case LogLevelFatal:
+			case util.LogLevelFatal:
 				log.SetLevel(log.FatalLevel)
-			case LogLevelPanic:
+			case util.LogLevelPanic:
 				log.SetLevel(log.PanicLevel)
 			default:
 				log.SetLevel(log.InfoLevel)
@@ -113,66 +119,72 @@ func main() {
 		}
 	}
 	if !foundLogLevel {
-		mlog.Infof("Unknown logging level, defaulting to %s", LogLevelStrings[LogLevelInfo])
+		mlog.Infof("Unknown logging level, defaulting to %s", util.LogLevelStrings[util.LogLevelInfo])
 		mlog.Info("")
 		log.SetLevel(log.InfoLevel)
 	}
 
 	mlog.Info("Starting network worker")
 
-	networker := network.NewNetworker(&workers, NewID(workers), "Network Worker")
+	networker := network.NewNetworker(&workers, util.NewID(workers), "Network Worker")
 	workers = append(workers, networker)
 	waitGroup.Add(1)
 	go networker.Run(&waitGroup, &terminateRequest)
 	networker.Command(worker.Connect)
 
-	authworker := authenticate.NewAuthWorker(&workers, NewID(workers), "Auth Worker")
+	authworker := authenticate.NewAuthWorker(&workers, util.NewID(workers), "Auth Worker")
 	workers = append(workers, authworker)
 	waitGroup.Add(1)
 	go authworker.Run(&waitGroup, &terminateRequest)
 	authworker.Command(worker.Logon)
 
-	streamworker := streams.NewStreamWorker(&workers, NewID(workers), "Stream Worker")
+	streamworker := streams.NewStreamWorker(&workers, util.NewID(workers), "Stream Worker")
 	workers = append(workers, streamworker)
 	waitGroup.Add(1)
 	go streamworker.Run(&waitGroup, &terminateRequest)
 
-	statusworker := channelstatus.NewStatusWorker(&workers, NewID(workers), "Status Worker")
+	statusworker := channelstatus.NewStatusWorker(&workers, util.NewID(workers), "Status Worker")
 	workers = append(workers, statusworker)
 	waitGroup.Add(1)
 	go statusworker.Run(&waitGroup, &terminateRequest)
 
-	imageworker := images.NewImageWorker(&workers, NewID(workers), "Image Worker")
+	imageworker := images.NewImageWorker(&workers, util.NewID(workers), "Image Worker")
 	workers = append(workers, imageworker)
 	waitGroup.Add(1)
 	go imageworker.Run(&waitGroup, &terminateRequest)
 
-	textworker := texts.NewTextMessageWorker(&workers, NewID(workers), "Text Message Worker")
+	textworker := texts.NewTextMessageWorker(&workers, util.NewID(workers), "Text Message Worker")
 	workers = append(workers, textworker)
 	waitGroup.Add(1)
 	go textworker.Run(&waitGroup, &terminateRequest)
 
-	locationworker := locations.NewLocationWorker(&workers, NewID(workers), "Location Worker")
+	locationworker := locations.NewLocationWorker(&workers, util.NewID(workers), "Location Worker")
 	workers = append(workers, locationworker)
 	waitGroup.Add(1)
 	go locationworker.Run(&waitGroup, &terminateRequest)
 
-	audioworker := audiodecoder.NewAudioWorker(&workers, NewID(workers), "Audio Worker")
+	audioworker := audiodecoder.NewAudioWorker(&workers, util.NewID(workers), "Audio Worker")
 	workers = append(workers, audioworker)
 	waitGroup.Add(1)
 	go audioworker.Run(&waitGroup, &terminateRequest)
 
+	var rpcapiworker *clientrpc.RPCWorker
+	if viper.GetBool("rpc.apienabled") {
+		rpcapiworker = clientrpc.NewRPCWorker(&workers, util.NewID(workers), "RPC API Worker")
+		workers = append(workers, rpcapiworker)
+		waitGroup.Add(1)
+		go rpcapiworker.Run(&waitGroup, &terminateRequest)
+	}
+
 waitLoop:
 	for {
-		terminateRequestReceived := false
 		select {
 		case <-terminateRequest:
 			mlog.Debug("Received 'terminateRequest' event")
-			if !terminateRequestReceived {
-				// Don't double close() channel
+			once.Do(func() {
 				mlog.Debug("Closing 'done' channel")
 				close(done)
-			}
+			})
 
 		case <-done:
 			mlog.Debug("Received 'done' event")
@@ -192,12 +204,17 @@ waitLoop:
 			mlog.Debug("Terminated authworker")
 			networker.Terminate()
 			mlog.Debug("Terminated networker")
+
+			if viper.GetBool("rpc.apienabled") {
+				rpcapiworker.Terminate()
+				mlog.Debug("Terminated rpcapiworker ")
+			}
 			break waitLoop
 
 		case <-timeLogger.C:
 			mlog.Info("")
 			mlog.Info("---------------------------------------------------------------")
-			mlog.Infof("Current Time: %s", UtcTimeDate().Format(time.RFC3339))
+			mlog.Infof("Current Time: %s", util.UtcTimeDate().Format(time.RFC3339))
 			mlog.Info("---------------------------------------------------------------")
 			mlog.Info("")
 
@@ -208,7 +225,7 @@ waitLoop:
 			case <-done:
 			case <-time.After(time.Second):
 				mlog.Debug("Grace period timer expired -- exiting")
-				close(done)
+				terminateRequest <- 1
 			}
 		}
 	}

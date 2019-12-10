@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/jcmurray/monitor/protocolapp"
+	"github.com/jcmurray/monitor/sequence"
 	"github.com/jcmurray/monitor/worker"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
@@ -263,7 +264,7 @@ waitloop:
 			continue
 		}
 
-		w.sendToSubscribersByType(protocolapp.OnResponseEvent, w.message)
+		w.sendToSubscribersByResponseExpected(protocolapp.OnResponseEvent, w.message)
 
 	}
 	w.log.Debug("Finished")
@@ -448,4 +449,38 @@ func (w *Networker) sendToSubscribersByType(sType string, message []byte) {
 			return
 		}
 	}
+}
+
+func (w *Networker) sendToSubscribersByResponseExpected(sType string, message []byte) {
+	w.subscriptionsLock.Lock()
+	defer w.subscriptionsLock.Unlock()
+	w.log.Tracef("sendToSubscribersByResponseExpected(): type %s, %v", sType, message)
+	for s := w.subscriptions; s != nil; s = s.Next {
+		if sequence.IsAnyExpected(s.ID) && s.Type == sType {
+			s.Channel <- message
+			return
+		}
+	}
+}
+
+// Label return label of worker
+func (w *Networker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *Networker) ID() int {
+	return w.id
+}
+
+// Subscriptions return a copy of current scubscriptions
+func (w *Networker) Subscriptions() []*worker.Subscription {
+	w.subscriptionsLock.Lock()
+	defer w.subscriptionsLock.Unlock()
+
+	var subCopy = make([]*worker.Subscription, 0)
+	for s := w.subscriptions; s != nil; s = s.Next {
+		subCopy = append(subCopy, s)
+	}
+	return subCopy
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/jcmurray/monitor/network"
 	"github.com/jcmurray/monitor/protocolapp"
+	"github.com/jcmurray/monitor/errorcodes"
 	"github.com/jcmurray/monitor/worker"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -53,7 +54,7 @@ waitloop:
 		w.log.Debugf("Entering Select")
 		select {
 		case errorMessage := <-errorChannel:
-			w.log.Debugf("Response: %s", string(errorMessage.([]byte)))
+			w.log.Debugf("Response: %s", errorcodes.Description(string(errorMessage.([]byte))))
 
 		case channelStatus := <-statusChannel:
 
@@ -73,6 +74,14 @@ waitloop:
 
 			if w.blockedOnChannel(c) {
 				w.log.Errorf("Error - Exiting - User: '%s' Blocked on Channel: '%s'", viper.GetString("logon.username"), c.Channel)
+				w.log.Tracef("Requesting application termination")
+				*term <- 1
+				continue
+			}
+
+			if w.errorOnChannel(c) {
+				w.log.Errorf("Error - Exiting - User: '%s' on Channel: '%s', error type '%s', %s",
+					viper.GetString("logon.username"), c.Channel, c.ErrorType, c.Error)
 				w.log.Tracef("Requesting application termination")
 				*term <- 1
 				continue
@@ -182,4 +191,32 @@ func (w *StatusWorker) closedChannel(c *protocolapp.OnChannelStatus) bool {
 		return true
 	}
 	return false
+}
+
+func (w *StatusWorker) errorOnChannel(c *protocolapp.OnChannelStatus) bool {
+	/*
+	   Check for error on channel
+	   ==========================
+
+	   If so then bail -- unrecoverable error
+
+	   c.Error != ""
+	   c.ErrorType != ""
+	*/
+	return (c.ErrorType != "") || (c.Error != "")
+}
+
+// Label return label of worker
+func (w *StatusWorker) Label() string {
+	return w.label
+}
+
+// ID return label of worker
+func (w *StatusWorker) ID() int {
+	return w.id
+}
+
+// Subscriptions return a copy of current scubscriptions
+func (w *StatusWorker) Subscriptions() []*worker.Subscription {
+	return make([]*worker.Subscription, 0)
 }
