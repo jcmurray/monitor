@@ -242,8 +242,7 @@ audio: ## used to calculate the required size of the audio PCM buffer ( 1920 byt
   framesperpacket: 2 ## Zello uses 2 OPUS Frames per packet -- Recommend not to change!!! (default 2)
 rpc:
   apienabled: false ## true/false - enable or disable the gRPC API ( default false )
-	apiport: 9998 ## Port the application will listen on for gRPC API **requests**
-
+  apiport: 9998 ## Port the application will listen on for gRPC API **requests**
 ```
 
 If you're interested in using the What3Words location setting get a [What3Words API Key](https://developer.what3words.com/public-api) from their developer site.
