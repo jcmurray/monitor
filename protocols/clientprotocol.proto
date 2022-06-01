@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package clientapi;
 
+option go_package = "github.com/jcmurray/monitor/clientapi";
+
 option java_multiple_files = true;
 option java_package = "com.example.monitor.clientapi";
 option java_outer_classname = "ClientProtocol";

@@ -105,7 +105,8 @@ There are pre-built binaries available for other platforms and it can also be bu
 Since this application is written in **Go** you need to install a **Go** specific plugin for **protobuf**. The easiest way is:
 
 ```shell
-go get -u github.com/golang/protobuf/protoc-gen-go
+$ go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+$ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ```
 
 ### Installing and Building the application

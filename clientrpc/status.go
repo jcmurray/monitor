@@ -4,7 +4,6 @@
 package clientrpc
 
 import (
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/jcmurray/monitor/audiodecoder"
 	"github.com/jcmurray/monitor/authenticate"
 	"github.com/jcmurray/monitor/channelstatus"
@@ -15,6 +14,7 @@ import (
 	"github.com/jcmurray/monitor/streams"
 	"github.com/jcmurray/monitor/texts"
 	"github.com/jcmurray/monitor/worker"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 )
 
 const ()

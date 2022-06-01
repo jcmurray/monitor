@@ -19,6 +19,7 @@ const ()
 
 // RPCWorker stream worker
 type RPCWorker struct {
+	clientapi.UnimplementedClientServiceServer
 	sync.Mutex
 	command           chan int
 	log               *log.Entry

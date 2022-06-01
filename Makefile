@@ -7,7 +7,7 @@
 
 default: all
 
-all: dep monitor
+all: clean clientapi dep monitor
 
 dep: ## Get the dependencies
 	@go get -v -d ./...
@@ -15,7 +15,7 @@ dep: ## Get the dependencies
 clientapi: ## generate the protocol stubs
 	${MAKE} -C clientapi
 
-monitor: clientapi
+monitor: clientapi dep
 	go build ./...
 	go build
 	go vet ./...
